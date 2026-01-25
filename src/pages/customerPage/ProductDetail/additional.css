@@ -1,0 +1,154 @@
+.variant-selector {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    border: 1px solid #e5e7eb;
+}
+
+.variant-selector .form-select {
+    min-width: 200px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-color: #e5e7eb;
+}
+
+.quantity-input {
+    width: 120px;
+    text-align: center;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-color: #e5e7eb;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.action-buttons button {
+    flex: 1;
+    min-width: 160px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.action-buttons button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Additional Layout Improvements */
+.product-detail .card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.product-detail .card p-3 {
+    padding: 1.5rem !important;
+}
+
+.specifications-table {
+    margin: 1rem 0;
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+.specifications-table th,
+.specifications-table td {
+    padding: 1rem;
+    background: #f8fafc;
+    border: none;
+}
+
+.specifications-table th {
+    border-radius: 8px 0 0 8px;
+    font-weight: 600;
+    color: #4b5563;
+    width: 200px;
+}
+
+.specifications-table td {
+    border-radius: 0 8px 8px 0;
+}
+
+.top-band {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.top-band a {
+    color: var(--brand);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.top-band a:hover {
+    text-decoration: underline;
+}
+
+/* Sticky Sidebar for Desktop */
+@media (min-width: 992px) {
+    .product-gallery {
+        position: sticky;
+        top: 2rem;
+    }
+    
+    .row.mt-4 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+    
+    .row.mt-4 .col-lg-8,
+    .row.mt-4 .col-lg-4 {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* Better Mobile Layout */
+@media (max-width: 991px) {
+    .row.mt-4 {
+        margin-top: 1rem !important;
+    }
+    
+    .row.mt-4 .card {
+        margin-bottom: 1rem;
+    }
+    
+    .specifications-table th {
+        width: 150px;
+    }
+}
+
+/* Price Badge Enhancement */
+.price-badge {
+    background: linear-gradient(45deg, #fee2e2 0%, #fef2f2 100%);
+    border: 1px solid #fecaca;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Stock Info Enhancement */
+.stock-info {
+    background: linear-gradient(45deg, #dcfce7 0%, #f0fdf4 100%);
+    border: 1px solid #bbf7d0;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+}

@@ -1,0 +1,270 @@
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.products-table th {
+  background: #f8f9fa;
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.products-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: top;
+}
+
+.products-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Order ID Cell */
+.order-id-cell {
+  font-size: 12px;
+}
+
+.order-id-cell strong {
+  display: block;
+  color: #333;
+  font-size: 14px;
+}
+
+.order-id-cell small {
+  color: #6c757d;
+  font-size: 11px;
+}
+
+/* Customer Cell */
+.customer-cell {
+  font-size: 14px;
+}
+
+.customer-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.customer-phone {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Items Cell */
+.items-cell {
+  font-size: 14px;
+}
+
+.items-count {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.items-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.item-tag {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.more-items {
+  font-size: 11px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Branch Cell */
+.branch-cell {
+  font-size: 14px;
+}
+
+.branch-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.branch-location {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Rider Cell */
+.rider-cell {
+  font-size: 14px;
+}
+
+.rider-contact {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.unassigned-badge {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Status Styles */
+.status-select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  font-size: 12px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.pending { background: #fff3cd; color: #856404; }
+.status-badge.processing { background: #cce7ff; color: #004085; }
+.status-badge.shipped { background: #d1ecf1; color: #0c5460; }
+.status-badge.delivered { background: #d4edda; color: #155724; }
+.status-badge.cancelled { background: #f8d7da; color: #721c24; }
+.status-badge.returned { background: #e2e3e5; color: #383d41; }
+
+/* Payment Badge */
+.payment-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.payment-badge.paid { background: #d4edda; color: #155724; }
+.payment-badge.unpaid { background: #f8d7da; color: #721c24; }
+.payment-badge.pending { background: #fff3cd; color: #856404; }
+
+/* Date Cell */
+.date-cell {
+  font-size: 14px;
+}
+
+.date-short {
+  font-weight: 500;
+  color: #333;
+}
+
+.time {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.btn-icon:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.view-btn:hover { border-color: #007bff; background: #e7f3ff; }
+.assign-btn:hover { border-color: #28a745; background: #e8f5e8; }
+.edit-btn:hover { border-color: #ffc107; background: #fff9e6; }
+
+/* Price formatting */
+.price {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .table-container {
+    border-radius: 8px;
+    margin: 0 -16px;
+    width: calc(100% + 32px);
+  }
+  
+  .products-table {
+    min-width: 1000px;
+    font-size: 13px;
+  }
+  
+  .products-table th,
+  .products-table td {
+    padding: 12px 8px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .btn-icon {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .products-table {
+    min-width: 900px;
+  }
+  
+  .order-id-cell small,
+  .customer-phone,
+  .branch-location,
+  .rider-contact,
+  .time {
+    display: none;
+  }
+}

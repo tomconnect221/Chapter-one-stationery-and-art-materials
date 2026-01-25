@@ -1,0 +1,175 @@
+header {
+  background-color: white;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  font-family: inter;
+  box-shadow: 1px 2px 6px #cfcdcd;
+  color: black;
+  padding: 30px;
+}
+
+header>h1 {
+  font-size: 20px;
+  margin-left: 10px;
+  margin-top: 5px;
+}
+
+.container .ingredient_list li {
+  margin-bottom: 10px;
+  margin-left: 0px;
+}
+
+.container .jumbotron {
+  background-color: rgb(243, 231, 231);
+  padding: 20px;
+  border-radius: 10px;
+  /* display: flex; */
+}
+
+.container .jumbotron button {
+  background-color: rgb(250, 103, 53);
+  color: white;
+  border: none;
+  margin-top: 10px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.container .jumbotron button:hover {
+  background-color: rgb(241, 62, 24);
+}
+
+/* Brand color variables */
+:root {
+  --brand-deep: #443297;
+  /* primary deep purple */
+  --brand-accent: #F5C34B;
+  /* warm yellow accent */
+  --brand-contrast: #ffffff;
+  --brand-muted: #f2f0fb;
+}
+
+/* Global buttons */
+.btn-thm,
+.btn-primary,
+.btn-brand {
+  background: var(--brand-deep);
+  color: var(--brand-contrast);
+  border: none;
+}
+
+.btn-thm:hover,
+.btn-primary:hover,
+.btn-brand:hover {
+  background: #392672;
+}
+
+/* Accent buttons (outline or secondary) */
+.btn-accent {
+  background: var(--brand-accent);
+  color: #222;
+  border: none;
+}
+
+.btn-accent:hover {
+  filter: brightness(.95);
+}
+
+/* Product price and badges */
+.price {
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+
+.si_footer small del {
+  color: #999;
+}
+
+/* Wishlist heart styling */
+.thumb_info .flaticon-heart {
+  color: #bbb;
+  transition: color .15s ease;
+}
+
+.thumb_info .text-danger .flaticon-heart,
+.thumb_info button.text-danger .flaticon-heart {
+  color: var(--brand-accent);
+}
+
+/* Product item card subtle background */
+.shop_item {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(68, 50, 151, 0.06);
+}
+
+.shop_item .title a {
+  color: #222;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 768px) {
+  header {
+    padding: 18px;
+  }
+}
+
+/* Uniform product image sizing */
+.product-thumb {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #fff;
+  display: block;
+}
+
+/* Prefer aspect-ratio when supported */
+.product-thumb {
+  aspect-ratio: 4 / 3;
+}
+
+/* Fallback: keep reserved space using padding-bottom (75% == 4:3) */
+.product-thumb {
+  position: relative;
+}
+
+.product-thumb::before {
+  content: '';
+  display: block;
+  padding-bottom: 75%;
+}
+
+.product-thumb-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Slight hover lift */
+.shop_item:hover {
+  transform: translateY(-4px);
+  transition: transform .18s ease;
+}
+
+.modal-overlay .modal-header {
+  padding: 20px;
+}
+
+.modal-overlay .modal-body,
+.modal-overlay .modal-footer {
+  background: white;
+  padding: 15px
+}
+section {
+  padding: 0px 0;
+  position: relative;
+}

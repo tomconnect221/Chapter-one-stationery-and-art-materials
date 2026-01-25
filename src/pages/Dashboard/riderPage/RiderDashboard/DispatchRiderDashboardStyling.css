@@ -1,0 +1,259 @@
+/* Dispatch Dashboard */
+.dispatch-stat .stat-icon .icon {
+  font-size: 28px;
+}
+
+/* Deliveries Section */
+.deliveries-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  margin-bottom: 30px;
+}
+
+.delivery-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: #ff9900;
+  color: #ff9900;
+}
+
+.filter-btn.active {
+  background: #ff9900;
+  border-color: #ff9900;
+  color: white;
+}
+
+/* Deliveries List */
+.deliveries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.delivery-card {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  align-items: center;
+}
+
+.delivery-card:hover {
+  border-color: #ff9900;
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.1);
+}
+
+.delivery-info {
+  min-width: 0;
+}
+
+.delivery-id {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.customer-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.delivery-address {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.delivery-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.delivery-time {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.delivery-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.delivery-status.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.delivery-status.in-progress {
+  background: #cce7ff;
+  color: #004085;
+}
+
+.delivery-status.completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.delivery-amount {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.delivery-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Dispatch Overview */
+.dispatch-overview {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.map-section,
+.performance-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+.map-section h3,
+.performance-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.map-placeholder {
+  height: 300px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-style: italic;
+  border: 2px dashed #e9ecef;
+}
+
+/* Performance Metrics */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.metric-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ff9900;
+  margin-bottom: 8px;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .dispatch-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .delivery-card {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .delivery-meta {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .delivery-actions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .delivery-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .delivery-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .delivery-filters {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .filter-btn {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .delivery-actions {
+    flex-direction: column;
+  }
+  
+  .delivery-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

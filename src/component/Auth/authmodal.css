@@ -1,0 +1,56 @@
+.auth-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1050;
+  padding:20px;
+}
+.auth-modal{
+  width:100%;
+  max-width:520px;
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.25);
+  overflow:hidden;
+}
+.auth-modal-header{
+  padding:18px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:linear-gradient(90deg,#fff,#fff);
+}
+.auth-close{
+  background:transparent;
+  border:0;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+.auth-modal-body{padding:20px}
+.auth-tabs{display:flex;gap:8px;margin-bottom:12px}
+.auth-tabs .tab{flex:1;padding:8px 10px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer;color:#333}
+.auth-tabs .tab.active{background:#81d4f5;color:#fff;border-color:#81d4f5}
+.auth-form input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
+.auth-form .mb-2{margin-bottom:10px}
+.auth-actions{display:block;align-items:center;gap:12px;margin-top:8px}
+.btn-primary-auth{padding:10px 16px;border-radius:8px;color:#fff;border:1px solid#6668b2;cursor:pointer}
+.btn-link-auth{background:transparent;border:0;color:#81d4f5;cursor:pointer}
+.auth-sep{display:flex;align-items:center;justify-content:center;margin:16px 0}
+.auth-sep span{padding:6px 12px;border-radius:20px;background:#fff;border:1px solid #eee}
+.auth-footer{font-size:12px;color:#666;margin-top:12px}
+.auth-footer .switch-row{display:flex;gap:10px;margin-top:8px}
+.auth-footer .switch{background:transparent;border:0;color:#81d4f5;cursor:pointer}
+
+/* small screen tweaks */
+@media (max-width:520px){
+  .auth-modal{max-width:100%}
+}
+
+/* make header auth button look like an inline link-box */
+.btn-as-link{background:transparent;border:0;padding:0;cursor:pointer;text-align:left}
+.btn-as-link .icon{display:flex;align-items:center}
+.btn-as-link .details{margin-left:8px}

@@ -1,0 +1,574 @@
+/* PaymentConfirmation.css - Modern & Classic Theme */
+:root {
+  --primary-color:#6668b2;
+  --accent-color: #ff9900;
+  --success-color: #10B981;
+  --error-color: #EF4444;
+  --warning-color: #F59E0B;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-light: #9CA3AF;
+  --bg-light: #F9FAFB;
+  --bg-white: #FFFFFF;
+  --border-light: #E5E7EB;
+  --border-medium: #D1D5DB;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+.payment-confirmation {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 40px 0;
+  display: flex;
+  align-items: center;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Progress Steps - Modern Design */
+.checkout-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 60px;
+  position: relative;
+  background: var(--bg-white);
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.progress-step.completed {
+  color: var(--primary-color);
+}
+
+.progress-step.completed .step-number {
+  background: var(--primary-color);
+  color: var(--bg-white);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(102, 104, 178, 0.3);
+}
+
+.progress-step.active {
+  color: var(--accent-color);
+}
+
+.progress-step.active .step-number {
+  background: var(--accent-color);
+  color: var(--bg-white);
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.progress-step.error {
+  color: var(--error-color);
+}
+
+.progress-step.error .step-number {
+  background: var(--error-color);
+  color: var(--bg-white);
+  border-color: var(--error-color);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.step-number {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-light);
+  border: 2px solid var(--border-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
+.step-error-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: var(--error-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.progress-line {
+  flex: 1;
+  height: 3px;
+  background: var(--border-light);
+  margin: 0 30px;
+  max-width: 120px;
+  border-radius: 2px;
+  position: relative;
+  top: -12px;
+}
+
+.progress-step.completed + .progress-line,
+.progress-step.active + .progress-line {
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+}
+
+/* Confirmation Card */
+.confirmation-card {
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 48px;
+  text-align: center;
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
+.confirmation-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px 0;
+}
+
+.loading-spinner {
+  margin-bottom: 8px;
+}
+
+.spinner-large {
+  width: 64px;
+  height: 64px;
+  border: 3px solid rgba(255, 153, 0, 0.2);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.loading-content p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Status Icons */
+.status-icon {
+  margin-bottom: 24px;
+}
+
+.icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-light);
+}
+
+.status-icon.success .icon-wrapper {
+  background: rgba(102, 104, 178, 0.1);
+}
+
+.status-icon.error .icon-wrapper {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Success State */
+.confirmation-success h2 {
+  color: var(--primary-color);
+  margin-bottom: 12px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.success-message {
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.order-details {
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin: 32px 0;
+  text-align: left;
+  border: 1px solid var(--border-light);
+}
+
+.order-details h4 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.detail-value.highlight {
+  color: var(--primary-color);
+  font-size: 18px;
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.paid {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Order Items */
+.order-items-summary {
+  margin: 32px 0;
+  text-align: left;
+}
+
+.order-items-summary h4 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 12px;
+}
+
+.items-list {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.2s ease;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-item:hover {
+  background: var(--bg-light);
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.item-total {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+/* Failed State */
+.confirmation-failed {
+  text-align: center;
+}
+
+.failed-header {
+  margin-bottom: 32px;
+}
+
+.confirmation-failed h2 {
+  color: var(--error-color);
+  margin-bottom: 12px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.current-step-indicator {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.step-badge {
+  background: var(--error-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.error-section {
+  margin: 32px 0;
+}
+
+.error-details {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.failed-message {
+  color: var(--error-color);
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.error-reasons {
+  color: var(--text-secondary);
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-reasons li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.recommendation {
+  background: rgba(255, 153, 0, 0.05);
+  border: 1px solid rgba(255, 153, 0, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: left;
+}
+
+.recommendation h4 {
+  color: var(--accent-color);
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.recommendation p {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 160px;
+  font-size: 15px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 104, 178, 0.3);
+}
+
+.btn-primary:hover {
+  background: #5a5c9c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 104, 178, 0.4);
+}
+
+.btn-secondary {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.3);
+}
+
+.btn-secondary:hover {
+  background: #e68900;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.btn-outline:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 104, 178, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .payment-confirmation {
+    padding: 20px 0;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+  
+  .confirmation-card {
+    padding: 32px 24px;
+    margin: 0;
+  }
+  
+  .checkout-progress {
+    /* flex-direction: column; */
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .progress-line {
+    display: none;
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+  
+  .confirmation-success h2,
+  .confirmation-failed h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .confirmation-card {
+    padding: 24px 16px;
+  }
+  
+  .order-details,
+  .error-details,
+  .recommendation {
+    padding: 20px 16px;
+  }
+  
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+}
