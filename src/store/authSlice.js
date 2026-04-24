@@ -66,7 +66,7 @@ const authSlice = createSlice({
       state.fieldErrors = action.payload.fieldErrors || {};
       state.success = null;
     },
-    
+
     // Profile update reducers
     updateProfileStart(state) {
       state.loading = true;
@@ -88,7 +88,7 @@ const authSlice = createSlice({
       state.fieldErrors = action.payload.fieldErrors || {};
       state.success = null;
     },
-    
+
     // Change password reducers
     changePasswordStart(state) {
       state.loading = true;
@@ -108,7 +108,47 @@ const authSlice = createSlice({
       state.fieldErrors = action.payload.fieldErrors || {};
       state.success = null;
     },
-    
+
+    // Forgot password reducers
+    forgotPasswordStart(state) {
+      state.loading = true;
+      state.error = null;
+      state.fieldErrors = {};
+      state.success = null;
+    },
+    forgotPasswordSuccess(state, action) {
+      state.loading = false;
+      state.success = action.payload.message || 'Password reset link sent successfully';
+      state.error = null;
+      state.fieldErrors = {};
+    },
+    forgotPasswordFailure(state, action) {
+      state.loading = false;
+      state.error = action.payload.message;
+      state.fieldErrors = action.payload.fieldErrors || {};
+      state.success = null;
+    },
+
+    // Reset password reducers
+    resetPasswordStart(state) {
+      state.loading = true;
+      state.error = null;
+      state.fieldErrors = {};
+      state.success = null;
+    },
+    resetPasswordSuccess(state, action) {
+      state.loading = false;
+      state.success = action.payload.message || 'Password has been reset successfully';
+      state.error = null;
+      state.fieldErrors = {};
+    },
+    resetPasswordFailure(state, action) {
+      state.loading = false;
+      state.error = action.payload.message;
+      state.fieldErrors = action.payload.fieldErrors || {};
+      state.success = null;
+    },
+
     logout(state) {
       state.user = null;
       state.token = null;
@@ -149,6 +189,12 @@ export const {
   changePasswordStart,
   changePasswordSuccess,
   changePasswordFailure,
+  forgotPasswordStart,
+  forgotPasswordSuccess,
+  forgotPasswordFailure,
+  resetPasswordStart,
+  resetPasswordSuccess,
+  resetPasswordFailure,
   logout,
   clearError,
   clearSuccess,

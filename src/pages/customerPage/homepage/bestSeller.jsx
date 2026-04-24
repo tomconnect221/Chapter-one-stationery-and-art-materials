@@ -120,21 +120,38 @@ const HomeBestSeller = () => {
                     
                     {/* Products Grid */}
                     <div className="row">
+                        {console.log('prooooo',products)}
+
                         {products.length > 0 ? (
-                            products.map(product => (
-                                <ProductItem
-                                    key={product.id}
-                                    view={'home'}
-                                    product={{
-                                        ...product,
-                                        price: formatPrice(product.price),
-                                        oldPrice: product.sale_price ? formatPrice(product.price) : null,
-                                        currentPrice: product.sale_price ? formatPrice(product.sale_price) : formatPrice(product.price),
-                                    }}
-                                    isWishlisted={isWishlisted(product.id)}
-                                    wishlistId={getWishlistId(product.id)}
-                                />
-                            ))
+                            products.map(product => {
+                                // Calculate if product has a discount from ads
+                                const hasDiscount = product.price_after_ad_discount && parseFloat(product.price_after_ad_discount) < parseFloat(product.price);
+                                const discountAmount = hasDiscount ? parseFloat(product.price) - parseFloat(product.price_after_ad_discount) : 0;
+                                const discountPercentage = hasDiscount ? Math.round((discountAmount / parseFloat(product.price)) * 100) : 0;
+                                
+                                // Check if product is promotional/ad-based
+                                const isPromo = product.ads && product.ads.length > 0;
+                                
+                                return (
+                                    <ProductItem
+                                        key={product.id}
+                                        view={'home'}
+                                        product={{
+                                            ...product,
+                                            originalPrice: parseFloat(product.price),
+                                            displayPrice: formatPrice(product.price),
+                                            discountedPrice: hasDiscount ? parseFloat(product.price_after_ad_discount) : parseFloat(product.price),
+                                            displayDiscountedPrice: hasDiscount ? formatPrice(product.price_after_ad_discount) : formatPrice(product.price),
+                                            hasDiscount: hasDiscount,
+                                            discountPercentage: discountPercentage,
+                                            discountAmount: discountAmount,
+                                            isPromo: isPromo,
+                                        }}
+                                        isWishlisted={isWishlisted(product.id)}
+                                        wishlistId={getWishlistId(product.id)}
+                                    />
+                                );
+                            })
                         ) : (
                             <div className="col-12 text-center">
                                 <h3>No products available</h3>

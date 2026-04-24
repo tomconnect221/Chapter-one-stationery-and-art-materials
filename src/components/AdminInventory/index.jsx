@@ -321,8 +321,7 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
               <th>Product</th>
               <th>SKU</th>
               <th>Current Stock</th>
-              <th>Available</th>
-              <th>Reserved</th>
+              {/* <th>Available</th> */}
               <th>Reorder Level</th>
               <th>Selling Price</th>
               <th>Status</th>
@@ -347,8 +346,7 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                       {item.quantity_in_stock}
                     </span>
                   </td>
-                  <td>{item.quantity_available}</td>
-                  <td>{item.quantity_reserved}</td>
+                  {/* <td>{item.quantity_available}</td> */}
                   <td>{item.reorder_level}</td>
                   <td>₦{parseFloat(item.selling_price).toLocaleString()}</td>
                   <td>
@@ -359,14 +357,14 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                   <td>{new Date(item.updated_at).toLocaleDateString()}</td>
                   <td>
                     <div className="action-button d-flex justify-content-center">
-                      <button 
+                      {/* <button 
                         className="btn-icon" 
                         onClick={() => handleViewDetails(item)} 
                         title="View Details"
                         style={{fontSize: '14px'}}
                       >
                         👁️
-                      </button>
+                      </button> */}
                       {canEdit && (
                         <>
                           <button 
@@ -377,21 +375,7 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                           >
                             📥
                           </button>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => handleAdjust(item)} 
-                            title="Adjust"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => deleteInventory(item.id)} 
-                            title="Delete"
-                            style={{color: 'red'}}
-                          >
-                            🗑️
-                          </button>
+                       
                         </>
                       )}
                     </div>
@@ -620,10 +604,10 @@ const LowStockAlertModal = ({ alerts, onClose, onViewDetails }) => {
                   <tr>
                     <th>Product</th>
                     <th>Current Stock</th>
-                    <th>Available</th>
+                    {/* <th>Available</th> */}
                     <th>Reorder Level</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    {/* <th>Actions</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -636,7 +620,7 @@ const LowStockAlertModal = ({ alerts, onClose, onViewDetails }) => {
                         </div>
                       </td>
                       <td>{item.quantity_in_stock}</td>
-                      <td>{item.quantity_available}</td>
+                      {/* <td>{item.quantity_available}</td> */}
                       <td>{item.reorder_level}</td>
                       <td>
                         <span className="stock-badge low">
@@ -644,13 +628,13 @@ const LowStockAlertModal = ({ alerts, onClose, onViewDetails }) => {
                         </span>
                       </td>
                       <td>
-                        <button 
+                        {/* <button 
                           className="btn-primary"
                           onClick={() => onViewDetails(item)}
                           style={{padding: '5px 10px', fontSize: '12px'}}
                         >
                           View Details
-                        </button>
+                        </button> */}
                       </td>
                     </tr>
                   ))}

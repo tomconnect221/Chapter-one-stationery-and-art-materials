@@ -179,7 +179,7 @@ const AccountDetails = ({ user, onUpdate }) => {
 
   const tabs = [
     { id: 'profile', label: 'Profile Information' },
-    { id: 'password', label: 'Password' },
+    { id: 'password', label: 'Change password' },
     // { id: 'permissions', label: 'Permissions' }
   ];
 
@@ -196,8 +196,8 @@ const AccountDetails = ({ user, onUpdate }) => {
   ];
 
   return (
-    <div className='col-lg-10'>
-      <div className="account-details">
+    <div className='col-lg-10 account-details-container'>
+      <div className="account-details ">
         <div className="account-header">
           <h2 className="account-title">Account Details</h2>
         </div>
@@ -231,14 +231,14 @@ const AccountDetails = ({ user, onUpdate }) => {
           </div>
 
           {/* Tab Content */}
-          <div className="tab-content">
+          <div className="tab-content ">
             {/* Profile Information Tab */}
             {activeTab === 'profile' && (
               <div className="tab-pane active">
-                <div className="form-section">
-                  <form className="account-form" onSubmit={(e) => e.preventDefault()}>
-                    <div className="form-grid">
-                      <div className="form-group">
+                <div className="form-sectio ">
+                  <form className="account-form " onSubmit={(e) => e.preventDefault()}>
+                    <div className="form-grid p-0">
+                      <div className="form-group mb-1">
                         <label className="form-label">Full Name *</label>
                         <input
                           className={`form-control ${getFieldError('name') ? 'is-invalid' : ''}`}
@@ -253,7 +253,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group mb-1">
                         <label className="form-label">Email *</label>
                         <input
                           className={`form-control ${getFieldError('email') ? 'is-invalid' : ''}`}
@@ -268,7 +268,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group mb-1">
                         <label className="form-label">Phone Number</label>
                         <input
                           className={`form-control ${getFieldError('phone') ? 'is-invalid' : ''}`}
@@ -282,7 +282,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group full-width">
+                      <div className="form-group mb-1 full-width">
                         <label className="form-label">Address</label>
                         <input
                           className={`form-control ${getFieldError('address') ? 'is-invalid' : ''}`}
@@ -296,7 +296,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group mb-1">
                         <label className="form-label">City</label>
                         <input
                           className={`form-control ${getFieldError('city') ? 'is-invalid' : ''}`}
@@ -310,7 +310,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group mb-1">
                         <label className="form-label">State</label>
                         <select
                           className={`form-control ${getFieldError('state') ? 'is-invalid' : ''}`}
@@ -330,7 +330,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                       </div>
 
 
-                      <div className="form-group">
+                      <div className="form-group mb-1">
                         <label className="form-label">Postal Code</label>
                         <input
                           className={`form-control ${getFieldError('postal_code') ? 'is-invalid' : ''}`}
@@ -371,10 +371,10 @@ const AccountDetails = ({ user, onUpdate }) => {
             {/* Password Tab */}
             {activeTab === 'password' && (
               <div className="tab-pane active">
-                <div className="form-section">
+                <div className="form-sectio">
                   <form className="account-form" onSubmit={(e) => e.preventDefault()}>
-                    <div className="form-grid">
-                      <div className="form-group full-width">
+                    <div className="form-grid p-0">
+                      <div className="form-group mb-1 full-width">
                         <label className="form-label">Current Password *</label>
                         <div className="password-input-wrapper">
                           <input
@@ -408,7 +408,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group full-width">
+                      <div className="form-group mb-1 full-width">
                         <label className="form-label">New Password *</label>
                         <div className="password-input-wrapper">
                           <input
@@ -446,7 +446,7 @@ const AccountDetails = ({ user, onUpdate }) => {
                         </small>
                       </div>
 
-                      <div className="form-group full-width">
+                      <div className="form-group mb-1 full-width">
                         <label className="form-label">Confirm New Password *</label>
                         <div className="password-input-wrapper">
                           <input

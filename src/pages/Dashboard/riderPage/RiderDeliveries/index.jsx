@@ -236,14 +236,14 @@ const DispatchDeliveries = () => {
   ];
 
   return (
-    <div className="dispatch-deliveries" style={{ background: '#f8fafc', minHeight: '100vh' }}>
+    <div className="dispatch-deliveries p-3" style={{ background: '#f8fafc', minHeight: '100vh' }}>
       {/* Enhanced Tabs */}
-      <div className="deliveries-tabs" style={{
+      <div className="deliveries-tabs p-0 m-0" style={{
         display: 'flex',
         background: 'white',
         borderRadius: '16px',
-        padding: '6px',
-        margin: '0 24px 24px 24px',
+        // padding: '6px',
+        // margin: '0 24px 24px 24px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
         gap: '4px'
       }}>
@@ -343,7 +343,7 @@ const DispatchDeliveries = () => {
       <div style={{
         display: 'flex',
         gap: '16px',
-        margin: '0 24px 24px 24px',
+        margin: '0 24px 14px 14px',
         flexWrap: 'wrap'
       }}>
         <div style={{ flex: 1, minWidth: '200px' }}>

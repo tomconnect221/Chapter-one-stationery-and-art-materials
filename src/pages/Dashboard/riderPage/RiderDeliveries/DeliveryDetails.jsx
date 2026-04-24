@@ -76,14 +76,14 @@ const DeliveryDetails = () => {
           'Content-Type': 'application/json'
         }
       });
-      console.log(response)
-
+      
       if (!response.ok) {
         throw new Error('Failed to fetch order details');
       }
 
       const data = await response.json();
       if (data.success) {
+        console.log('customer details ',data.data)
         setOrder(data.data);
       } else {
         throw new Error('Failed to load order details');
@@ -171,11 +171,17 @@ const DeliveryDetails = () => {
     );
   }
 
+  // Calculate total weight from all order items
+  const totalWeight = order.order_items?.reduce((sum, item) => {
+    const itemWeight = parseFloat(item.product?.weight) || 0;
+    return sum + (itemWeight * item.quantity);
+  }, 0) || 0;
+
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '15px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{
-        display: 'flex',
+        display: 'block',
         alignItems: 'center',
         marginBottom: '24px',
         paddingBottom: '16px',
@@ -297,6 +303,9 @@ const DeliveryDetails = () => {
                 </p>
                 <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
                   Quantity: {item.quantity} × {formatPrice(item.unit_price)}
+                  {item.product?.weight && (
+                    <span style={{ marginLeft: '8px' }}>• Weight: {(parseFloat(item.product.weight) || 0).toFixed(2)} kg</span>
+                  )}
                 </p>
               </div>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b' }}>
@@ -332,6 +341,12 @@ const DeliveryDetails = () => {
             <span>Delivery Fee:</span>
             <span>{formatPrice(order.delivery_fee)}</span>
           </div>
+          {totalWeight > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
+              <span>Total Weight:</span>
+              <span>{totalWeight.toFixed(2)} kg</span>
+            </div>
+          )}
           <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '600', color: '#1e293b' }}>
             <span>Total:</span>

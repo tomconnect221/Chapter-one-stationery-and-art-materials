@@ -121,14 +121,47 @@ const useRiderOrders = ({
     return orders.filter(order => order.status === filterStatus);
   }, [orders]);
 
-  // Get order statistics
+// Get order statistics
   const getOrderStats = useCallback(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate total earnings from delivered orders
+    const totalEarnings = orders
+      .filter(o => o.status === 'delivered')
+      .reduce((sum, order) => {
+        return sum + parseFloat(order.total_amount || 0);
+      }, 0);
+    
+    // Calculate today's earnings from orders delivered today
+    const todayEarnings = orders
+      .filter(o => {
+        if (o.status !== 'delivered' || !o.delivered_at) return false;
+        const deliveredDate = new Date(o.delivered_at);
+        deliveredDate.setHours(0, 0, 0, 0);
+        return deliveredDate.getTime() === today.getTime();
+      })
+      .reduce((sum, order) => {
+        return sum + parseFloat(order.total_amount || 0);
+      }, 0);
+
     return {
       total: orders.length,
       pending: orders.filter(o => o.status === 'pending').length,
-      inProgress: orders.filter(o => o.status === 'in_progress' || o.status === 'in-progress').length,
-      completed: orders.filter(o => o.status === 'completed').length,
-      failed: orders.filter(o => o.status === 'failed' || o.status === 'cancelled').length
+      confirmed: orders.filter(o => o.status === 'confirmed').length,
+      preparing: orders.filter(o => o.status === 'preparing').length,
+      readyForDelivery: orders.filter(o => o.status === 'ready_for_delivery').length,
+      outForDelivery: orders.filter(o => o.status === 'out_for_delivery').length,
+      inProgress: orders.filter(o => 
+        o.status === 'confirmed' || 
+        o.status === 'preparing' || 
+        o.status === 'ready_for_delivery' || 
+        o.status === 'out_for_delivery'
+      ).length,
+      delivered: orders.filter(o => o.status === 'delivered').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
+      totalEarnings: totalEarnings,
+      todayEarnings: todayEarnings
     };
   }, [orders]);
 

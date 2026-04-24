@@ -211,7 +211,7 @@ const SingleInventoryView = ({ userType = 'admin', userBranch = null }) => {
                 <div>
                     <button
                         className="btn-secondary"
-                        onClick={() => navigate('/inventory')}
+                        onClick={() => navigate('/admin/inventory')}
                         style={{ marginRight: '10px' }}
                     >
                         ← Back to Inventory

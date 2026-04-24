@@ -505,28 +505,28 @@ const AdminCategories = ({ userType = 'admin' }) => {
                   <td>
                     <div className="action-button d-flex justify-content-center align-items-center gap-2">
                       {canEdit && (
-                        <>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => handleEdit(category)} 
-                            title="Edit"
-                            disabled={deleteLoading === category.id}
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            className="btn-icon danger" 
-                            onClick={() => handleDeleteClick(category)} 
-                            title="Delete"
-                            disabled={deleteLoading === category.id}
-                          >
-                            {deleteLoading === category.id ? (
-                              <div className="button-spinner-small"></div>
-                            ) : (
-                              '🗑️'
-                            )}
-                          </button>
-                        </>
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleEdit(category)}
+                          title="Edit"
+                          disabled={deleteLoading === category.id}
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className="btn-icon danger"
+                          onClick={() => handleDeleteClick(category)}
+                          title="Delete"
+                          disabled={deleteLoading === category.id}
+                        >
+                          {deleteLoading === category.id ? (
+                            <div className="button-spinner-small"></div>
+                          ) : (
+                            '🗑️'
+                          )}
+                        </button>
                       )}
                     </div>
                   </td>

@@ -16,7 +16,7 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
   // Get user data from Redux auth state
   const { user } = useSelector((state) => state.auth);
 
-  const menuItems = {
+ const menuItems = {
     admin: [
       { path: '/admin/dashboard', icon: '🏠', label: 'Dashboard' },
       { path: '/admin/products', icon: '📦', label: 'Products' },
@@ -24,10 +24,12 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
      // { path: '/admin/brands', icon: '🏷️', label: 'Brands' },
       { path: '/admin/orders', icon: '✅', label: 'Orders' },
       { path: '/admin/customers', icon: '👥', label: 'Customers' },
-   
+      // { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
       { path: '/admin/branches', icon: '🏢', label: 'Branches' },
       { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
       { path: '/admin/subadmins', icon: '👨‍💼', label: 'Sub Admins' },
+      { path: '/admin/accounting', icon: '📊', label: 'Accounting' },
+      { path: '/admin/transactions', icon: '💳', label: 'Transactions' },
       { path: '/admin/profile', icon: '👤', label: 'Profile' },
       { path: '/admin/settings', icon: '⚙️', label: 'Settings' }
     ],
@@ -36,9 +38,7 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
       { path: '/admin/products', icon: '📦', label: 'Products' },
       { path: '/admin/categories', icon: '📁', label: 'Categories' },
       { path: '/admin/orders', icon: '✅', label: 'Orders' },
-         { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
-      // { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
-      // { path: '/admin/customers', icon: '👥', label: 'Customers' },
+      { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
       { path: '/admin/profile', icon: '👤', label: 'Profile' },
       { path: '/admin/settings', icon: '⚙️', label: 'Settings' }
     ],
@@ -51,7 +51,6 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
       { path: '/dispatch/dashboard', icon: '🏠', label: 'Dashboard' },
       { path: '/dispatch/deliveries', icon: '🚚', label: 'My Deliveries' },
       { path: '/dispatch/schedule', icon: '📅', label: 'Schedule' },
-
       { path: '/dispatch/profile', icon: '👤', label: 'Profile' },
       { path: '/dispatch/settings', icon: '⚙️', label: 'Settings' }
     ]

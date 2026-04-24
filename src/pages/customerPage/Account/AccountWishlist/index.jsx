@@ -218,7 +218,7 @@ const AccountWishlist = () => {
   const sortedItems = getSortedItems();
 
   return (
-    <div className="col-lg-10">
+    <div className="col-lg-10 wishlist-container-section">
       <div className="wishlist-container">
         <div className="wishlist-header">
           <div className="header-content">

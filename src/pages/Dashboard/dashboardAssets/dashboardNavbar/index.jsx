@@ -8,6 +8,9 @@ import NotificationsCenter from '../../../../components/NotificationsCenter';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import './DashboardNavbar.css'
+import siteDarkLogo from '/assets/image/dark_logo.png';
+import useSettings from '../../../../hooks/useSettings';
+   
 const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobileSidebar }) => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notificationsDropdownOpen, setNotificationsDropdownOpen] = useState(false);
@@ -16,7 +19,9 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [notificationsCenterOpen, setNotificationsCenterOpen] = useState(false);
-
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const { settings} = useSettings();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -116,8 +121,8 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
       { path: '/admin/orders', icon: '✅', label: 'Orders' },
       { path: '/admin/customers', icon: '👥', label: 'Customers' },
       { path: '/admin/categories', icon: '📁', label: 'Categories' },
-      { path: '/admin/brands', icon: '🏷️', label: 'Brands' },
-      { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
+      // { path: '/admin/brands', icon: '🏷️', label: 'Brands' },
+      // { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
       { path: '/admin/branches', icon: '🏢', label: 'Branches' },
       { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
       { path: '/admin/subadmins', icon: '👨‍💼', label: 'Sub Admins' },
@@ -129,9 +134,9 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
       { path: '/admin/products', icon: '📦', label: 'Products' },
       { path: '/admin/orders', icon: '✅', label: 'Orders' },
       { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
-      { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
-      { path: '/admin/customers', icon: '👥', label: 'Customers' },
-      { path: '/admin/branches', icon: '🏢', label: 'My Branch' },
+      // { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
+      // { path: '/admin/customers', icon: '👥', label: 'Customers' },
+      // { path: '/admin/branches', icon: '🏢', label: 'My Branch' },
       { path: '/admin/profile', icon: '👤', label: 'Profile' },
       { path: '/admin/settings', icon: '⚙️', label: 'Settings' }
     ],
@@ -168,6 +173,31 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Scroll direction tracking for sticky navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < 10) {
+        // Always show navbar at the top
+        setIsNavbarVisible(true);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - show navbar
+        setIsNavbarVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        // Scrolling down - hide navbar
+        setIsNavbarVisible(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY]);
 
   const handleLogout = () => {
     setLogoutModalOpen(true);
@@ -247,7 +277,13 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
   const unreadMessagesCount = messages.filter(m => m.unread).length;
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm border-bottom sticky-top">
+    <nav
+      className="navbar navbar-expand-lg navbar-light bg-white shadow-sm border-bottom sticky-top"
+      style={{
+        top: isNavbarVisible ? '0' : '-100px',
+        transition: 'top 0.3s ease-in-out'
+      }}
+    >
       <div className="container-fluid">
         {/* Left Section - Logo and Toggle */}
         <div className="d-flex align-items-center">
@@ -259,9 +295,15 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
             <i className="fas fa-bars"></i>
           </button>
 
-          <Link to="/" className="navbar-brand ms-2 ms-lg-3 fw-bold text-dark">
+          {/* <Link to="/" className="navbar-brand ms-2 ms-lg-3 fw-bold text-dark">
             Chapter 0ne<span className="text-primary">.</span>
-          </Link>
+          </Link> */}
+
+          <div className="chapterone_logo_section">
+            <Link to="/" className="chapter-logo">
+              <img src={settings ? settings.logo : siteDarkLogo} alt="chapter one Logo" />
+            </Link>
+          </div>
         </div>
 
         {/* Mobile Toggle Button */}
@@ -321,14 +363,14 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
           {/* Notifications Dropdown */}
           <div className="dropdown me-2" ref={notificationsDropdownRef}>
             <button
-              style={{width:'100px'}}
+              style={{ width: '100px' }}
               className="btn btn-outline-secondary position-relative border-0"
               onClick={() => setNotificationsCenterOpen(true)}
               aria-label="Notifications"
             >
               <i className="fas fa-bell"></i>
               {unreadNotificationsCount > 0 && (
-                <span style={{padding:'5px', borderRadius:'30px'}}  className="position-absolute  badge bg-danger">
+                <span style={{ padding: '5px', borderRadius: '30px' }} className="position-absolute  badge bg-danger">
                   {unreadNotificationsCount}
                 </span>
               )}

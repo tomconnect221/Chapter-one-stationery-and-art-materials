@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
+import { setWishlist } from '../store/wishlistSlice';
 
 export const useWishlistData = () => {
     const [wishlistItems, setWishlistItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const { token } = useSelector(state => state.auth);
+    const dispatch = useDispatch();
 
     const fetchWishlist = async () => {
         if (!token) return;
@@ -20,6 +22,10 @@ export const useWishlistData = () => {
 
             if (response.data.success) {
                 setWishlistItems(response.data.data);
+                // Sync to Redux store and localStorage
+                const productIds = response.data.data.map(item => item.product_id);
+                dispatch(setWishlist(productIds));
+                localStorage.setItem('wishlistIds', JSON.stringify(productIds));
             }
         } catch (error) {
             console.error('Error fetching wishlist:', error);

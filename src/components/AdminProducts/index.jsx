@@ -4,6 +4,8 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../AdminProducts/AdminProducts.css';
+import ProductView from './ProductView';
+import ProductForm from './ProductForm';
 
 const AdminProducts = ({ userType = 'admin' }) => {
   const [products, setProducts] = useState([]);
@@ -13,7 +15,6 @@ const AdminProducts = ({ userType = 'admin' }) => {
   const [error, setError] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(null);
-
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
@@ -23,6 +24,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
   const [formErrors, setFormErrors] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
   const [imagesPreviews, setImagesPreviews] = useState([]);
+  
+  // View mode: 'list', 'view', 'add', 'edit'
+  const [viewMode, setViewMode] = useState('list');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +72,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
           barcode: product.barcode,
           weight: product.weight,
           dimensions: product.dimensions,
-          color: product.color,
+          color: product.color ,
           size: product.size,
           brand: product.brand,
           model: product.model,
@@ -132,7 +136,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
   const fetchBranches = async () => {
     try {
       const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/branches` :
-       `${import.meta.env.VITE_API_URL}/api/subadmin/branches`;
+        `${import.meta.env.VITE_API_URL}/api/subadmin/branches`;
       const response = await axios.get(URL, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -154,8 +158,11 @@ const AdminProducts = ({ userType = 'admin' }) => {
   };
 
   const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(Number(value));
+    const newItemsPerPage = Number(value);
+    setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
+    // Fetch products directly to ensure pagination works immediately
+    fetchProducts();
   };
 
   const handleAdd = () => {
@@ -180,7 +187,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       warranty_period: '',
       is_featured: false,
       is_digital: false,
-      requires_shipping: false,
+      requires_shipping: true,
       tax_rate: '',
       image: null,
       images: [],
@@ -195,7 +202,12 @@ const AdminProducts = ({ userType = 'admin' }) => {
     setFormErrors({});
     setImagePreview(null);
     setImagesPreviews([]);
-    setShowModal(true);
+    setViewMode('add');
+  };
+
+  const handleView = (product) => {
+    setSelectedProduct(product);
+    setViewMode('view');
   };
 
   const handleEdit = (product) => {
@@ -214,7 +226,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       barcode: product.barcode,
       weight: product.weight,
       dimensions: product.dimensions,
-      color: product.color,
+      color: product.color || (Array.isArray(product.colors) && product.colors.length > 0 ? product.colors[0] : null),
       size: product.size,
       brand: product.brand,
       model: product.model,
@@ -244,7 +256,12 @@ const AdminProducts = ({ userType = 'admin' }) => {
       setImagesPreviews([]);
     }
 
-    setShowModal(true);
+    setViewMode('edit');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedProduct(null);
   };
 
   const handleDeleteClick = (product) => {
@@ -321,7 +338,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
       appendIfNotEmpty(formData, 'barcode', selectedProduct.barcode);
       appendIfNotEmpty(formData, 'weight', selectedProduct.weight);
       appendIfNotEmpty(formData, 'dimensions', selectedProduct.dimensions);
-      appendIfNotEmpty(formData, 'color', selectedProduct.color);
+      if (selectedProduct.color) {
+        formData.append('color', selectedProduct.color);
+      }
       appendIfNotEmpty(formData, 'size', selectedProduct.size);
       appendIfNotEmpty(formData, 'brand', selectedProduct.brand);
       appendIfNotEmpty(formData, 'model', selectedProduct.model);
@@ -376,7 +395,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
 
         if (response.data.success) {
           toast.success('Product created successfully');
-          setShowModal(false);
+          setViewMode('list');
           fetchProducts();
         }
       } else {
@@ -394,7 +413,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
 
         if (response.data.success) {
           toast.success('Product updated successfully');
-          setShowModal(false);
+          setViewMode('list');
           fetchProducts();
         }
       }
@@ -531,6 +550,50 @@ const AdminProducts = ({ userType = 'admin' }) => {
     product.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Render based on view mode
+  if (viewMode === 'view' && selectedProduct) {
+    return (
+      <div className="admin-products">
+        <ToastContainer />
+        <ProductView 
+          product={selectedProduct} 
+          onBack={handleBackToList}
+          onEdit={canEdit ? handleEdit : null}
+          canEdit={canEdit}
+        />
+      </div>
+    );
+  }
+
+  if ((viewMode === 'add' || viewMode === 'edit') && selectedProduct) {
+    return (
+      <div className="admin-products">
+        <ToastContainer />
+        <ProductForm
+          mode={modalMode}
+          product={selectedProduct}
+          color={selectedProduct.color || ''}
+          onChange={setSelectedProduct}
+          onColorChange={(color) => setSelectedProduct(prev => ({ ...prev, color }))}
+          onImageChange={handleImageChange}
+          onImagesChange={handleImagesChange}
+          onRemoveImage={handleRemoveImage}
+          onRemoveAdditionalImage={handleRemoveAdditionalImage}
+          onTagChange={handleTagChange}
+          imagePreview={imagePreview}
+          imagesPreviews={imagesPreviews}
+          errors={formErrors}
+          loading={saveLoading}
+          categories={categories}
+          branches={branches}
+          onSave={handleSave}
+          onCancel={handleBackToList}
+        />
+      </div>
+    );
+  }
+
+  // List view
   if (loading) {
     return (
       <div className="admin-products">
@@ -642,7 +705,6 @@ const AdminProducts = ({ userType = 'admin' }) => {
           </div>
         </div>
       </div>
-
       <div className="table-container">
         <table className="products-table">
           <thead>
@@ -745,25 +807,34 @@ const AdminProducts = ({ userType = 'admin' }) => {
                     <div className="action-button d-flex justify-content-center align-items-center gap-2">
                       <button
                         className="btn-icon"
-                        onClick={() => handleEdit(product)}
-                        title="Edit"
-                        disabled={deleteLoading === product.id}
+                        onClick={() => handleView(product)}
+                        title="View"
                       >
-                        ✏️
+                        👁️
                       </button>
                       {canEdit && (
-                        <button
-                          className="btn-icon danger"
-                          onClick={() => handleDeleteClick(product)}
-                          title="Delete"
-                          disabled={deleteLoading === product.id}
-                        >
-                          {deleteLoading === product.id ? (
-                            <div className="button-spinner-small"></div>
-                          ) : (
-                            '🗑️'
-                          )}
-                        </button>
+                        <>
+                          <button
+                            className="btn-icon"
+                            onClick={() => handleEdit(product)}
+                            title="Edit"
+                            disabled={deleteLoading === product.id}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn-icon danger"
+                            onClick={() => handleDeleteClick(product)}
+                            title="Delete"
+                            disabled={deleteLoading === product.id}
+                          >
+                            {deleteLoading === product.id ? (
+                              <div className="button-spinner-small"></div>
+                            ) : (
+                              '🗑️'
+                            )}
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -1132,19 +1203,7 @@ const ProductModal = ({
               {errors.model && <span className="error-message">{errors.model[0]}</span>}
             </div>
 
-            <div className="form-field">
-              <label>Color</label>
-              <input
-                type="color"
-                value={product.color}
-                onChange={(e) => onChange({ ...product, color: e.target.value })}
-                placeholder="Product color"
-                className={errors.color ? 'error form-control' : 'form-control'}
-                disabled={loading}
 
-              />
-              {errors.color && <span className="error-message">{errors.color[0]}</span>}
-            </div>
 
             <div className="form-field">
               <label>Size</label>
@@ -1245,39 +1304,56 @@ const ProductModal = ({
             </div>
 
             <div className="form-field">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={product.is_featured}
-                  onChange={(e) => onChange({ ...product, is_featured: e.target.checked })}
-                  disabled={loading}
-                />
-                Featured Product
-              </label>
-            </div>
+              <label className="mb-2">Product Flags</label>
+              <div className="d-flex flex-column gap-3">
+                <div
+                  className={`switch-container ${product.is_featured ? 'active' : ''}`}
+                  onClick={() => onChange({ ...product, is_featured: !product.is_featured })}
+                >
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={product.is_featured}
+                      onChange={(e) => onChange({ ...product, is_featured: e.target.checked })}
+                      disabled={loading}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                  <span className="switch-label">Featured Product</span>
+                </div>
 
-            <div className="form-field">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={product.is_digital}
-                  onChange={(e) => onChange({ ...product, is_digital: e.target.checked })}
-                  disabled={loading}
-                />
-                Digital Product
-              </label>
-            </div>
+                <div
+                  className={`switch-container ${product.is_digital ? 'active' : ''}`}
+                  onClick={() => onChange({ ...product, is_digital: !product.is_digital })}
+                >
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={product.is_digital}
+                      onChange={(e) => onChange({ ...product, is_digital: e.target.checked })}
+                      disabled={loading}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                  <span className="switch-label">Digital Product</span>
+                </div>
 
-            <div className="form-field">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={product.requires_shipping}
-                  onChange={(e) => onChange({ ...product, requires_shipping: e.target.checked })}
-                  disabled={loading}
-                />
-                Requires Shipping
-              </label>
+                <div
+                  className={`switch-container ${product.requires_shipping ? 'active' : ''}`}
+                  onClick={() => onChange({ ...product, requires_shipping: !product.requires_shipping })}
+                >
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={product.requires_shipping}
+                      onChange={(e) => onChange({ ...product, requires_shipping: e.target.checked })}
+                      disabled={loading}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                  <span className="switch-label">Requires Shipping</span>
+                </div>
+              </div>
             </div>
 
             <div className="form-field">

@@ -168,7 +168,24 @@ const Orders = () => {
         });
 //  console.log(response);
         if (response.data.success) {
-          setOrders(response.data.data);
+          // Deduplicate orders: unique based on customer, total_amount, date, branch, and total items
+          const ordersData = response.data.data;
+          const ordersWithItemCount = ordersData.map(order => ({
+            ...order,
+            totalItems: order.order_items.reduce((total, item) => total + item.quantity, 0)
+          }));
+          const uniqueOrdersMap = new Map();
+          ordersWithItemCount.forEach(order => {
+            const createdDate = order.created_at ? order.created_at.split('T')[0] : '';
+            const branchName = order.branch ? order.branch.name : '';
+            const key = `${order.total_amount}-${createdDate}-${branchName}-${order.totalItems}`;
+            if (!uniqueOrdersMap.has(key)) {
+              uniqueOrdersMap.set(key, order);
+            }
+          });
+          const uniqueOrders = Array.from(uniqueOrdersMap.values());
+          console.log(`Total: ${ordersData.length}, Unique: ${uniqueOrders.length}`);
+          setOrders(uniqueOrders);
         } else {
           setError('Failed to fetch orders');
         }
@@ -188,16 +205,16 @@ const Orders = () => {
   }, [activeTab, searchTerm, filterStatus]);
 
   const tabs = [
-    {
-      id: 'ongoing', 
-      label: 'Ongoing/Delivered', 
-      count: orders.filter(order => order.status !== 'cancelled' && order.status !== 'returned').length
-    },
-    {
-      id: 'cancelled', 
-      label: 'Cancelled/Returned', 
-      count: orders.filter(order => order.status === 'cancelled' || order.status === 'returned').length
-    }
+    // {
+    //   id: 'ongoing', 
+    //   label: 'Ongoing/Delivered', 
+    //   count: orders.filter(order => order.status !== 'cancelled' && order.status !== 'returned').length
+    // },
+    // {
+    //   id: 'cancelled', 
+    //   label: 'Cancelled/Returned', 
+    //   count: orders.filter(order => order.status === 'cancelled' || order.status === 'returned').length
+    // }
   ];
 
   const statusFilters = [
@@ -215,12 +232,13 @@ const Orders = () => {
       pending: 'status-pending',
       preparing: 'status-preparing',
       ready_for_delivery: 'status-shipping',
+      out_for_delivery: 'status-shipping',
       delivered: 'status-delivered',
       cancelled: 'status-cancelled',
       returned: 'status-returned',
       confirmed: 'status-confirmed'
     };
-    return statusClasses[status] || 'status-default';
+    return statusClasses[status?.toLowerCase()] || 'status-default';
   };
 
   const getStatusText = (status) => {
@@ -228,12 +246,13 @@ const Orders = () => {
       pending: 'Pending',
       preparing: 'Preparing',
       ready_for_delivery: 'Out for Delivery',
+      out_for_delivery: 'Out for Delivery',
       delivered: 'Delivered',
       cancelled: 'Cancelled',
       returned: 'Returned',
       confirmed: 'Confirmed'
     };
-    return statusMap[status] || status;
+    return statusMap[status?.toLowerCase()] || status;
   };
 
   const getCurrentOrders = () => {
@@ -328,7 +347,7 @@ const Orders = () => {
 
   if (loading) {
     return (
-      <div className="col-lg-10">
+      <div className="col-lg-10 orders-container-section">
         <div className="orders-container">
           <div className="loading-state">
             <div className="loading-spinner"></div>
@@ -341,7 +360,7 @@ const Orders = () => {
 
   if (error) {
     return (
-      <div className="col-lg-10">
+      <div className="col-lg-10 orders-container-section">
         <div className="orders-container">
           <div className="error-state">
             <div className="error-icon">⚠️</div>
@@ -357,7 +376,7 @@ const Orders = () => {
   }
 
   return (
-    <div className='col-lg-10'>
+    <div className='col-lg-10 orders-container-section'>
       <div className="orders-container">
         {/* Header Section */}
         <div className="orders-header">
@@ -420,7 +439,6 @@ const Orders = () => {
             </select>
           </div>
         </div>
-
         {/* Orders Grid */}
         <div className="orders-grid">
           {getCurrentOrders().length === 0 ? (
@@ -449,6 +467,7 @@ const Orders = () => {
               </button>
             </div>
           ) : (
+          
             getPaginatedOrders().map(order => (
               <div key={order.id} className="order-card-modern">
                 {/* Card Header */}
@@ -530,7 +549,7 @@ const Orders = () => {
                     </button>
                   )} */}
                   
-                  {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                  {/* {order.status !== 'delivered' && order.status !== 'cancelled' && (
                     <button 
                       className="btn-primary-small"
                       onClick={() => handleTrackOrder(order)}
@@ -541,7 +560,7 @@ const Orders = () => {
                       </svg>
                       Track Order
                     </button>
-                  )}
+                  )} */}
                 </div>
               </div>
             ))

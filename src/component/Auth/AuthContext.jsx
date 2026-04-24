@@ -17,6 +17,12 @@ import {
   changePasswordStart,
   changePasswordSuccess,
   changePasswordFailure,
+  forgotPasswordStart,
+  forgotPasswordSuccess,
+  forgotPasswordFailure,
+  resetPasswordStart,
+  resetPasswordSuccess,
+  resetPasswordFailure,
   logout,
   clearError,
   clearSuccess,
@@ -58,12 +64,12 @@ export const AuthProvider = ({ children }) => {
     try {
       // Create form data with only the expected fields
       const formData = new URLSearchParams();
-      
+
       // Only include fields that are expected by the API
       const expectedFields = [
         'name', 'email', 'phone', 'address', 'city', 'state', 'postal_code'
       ];
-      
+
       expectedFields.forEach(field => {
         if (profileData[field] !== undefined && profileData[field] !== null) {
           formData.append(field, profileData[field]);
@@ -98,16 +104,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Change password
-  const changePassword = async (passwordData,usetoken) => {
+  const changePassword = async (passwordData, usetoken) => {
     dispatch(changePasswordStart());
     try {
       // Create form data with only the expected fields
       const formData = new URLSearchParams();
-      
+
       const expectedFields = [
         'current_password', 'password', 'password_confirmation'
       ];
-      
+
       expectedFields.forEach(field => {
         if (passwordData[field] !== undefined && passwordData[field] !== null) {
           formData.append(field, passwordData[field]);
@@ -117,7 +123,7 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.post('/api/auth/password/change', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-           Authorization: `Bearer ${usetoken}` 
+          Authorization: `Bearer ${usetoken}`
         },
       });
 
@@ -136,6 +142,76 @@ export const AuthProvider = ({ children }) => {
       const errorMessage = error.response?.data?.message || 'Password change failed';
       const fieldErrors = error.response?.data?.errors || {};
       dispatch(changePasswordFailure({ message: errorMessage, fieldErrors }));
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage, fieldErrors };
+    }
+  };
+
+  // Forgot Password
+  const forgotPassword = async (email, role = 'customer') => {
+    dispatch(forgotPasswordStart());
+    try {
+      const formData = new URLSearchParams();
+      formData.append('email', email);
+      formData.append('role', role);
+
+      const response = await apiClient.post('/api/auth/password/reset-request', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      if (response.data.success) {
+        dispatch(forgotPasswordSuccess({
+          message: response.data.message,
+        }));
+        toast.success(response.data.message || 'Reset link sent');
+        return { success: true };
+      } else {
+        dispatch(forgotPasswordFailure({ message: response.data.message || 'Request failed' }));
+        toast.error(response.data.message || 'Request failed');
+        return { success: false, error: response.data.message };
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'An error occurred';
+      const fieldErrors = error.response?.data?.errors || {};
+      dispatch(forgotPasswordFailure({ message: errorMessage, fieldErrors }));
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage, fieldErrors };
+    }
+  };
+
+  // Reset Password
+  const resetPassword = async (data) => {
+    dispatch(resetPasswordStart());
+    try {
+      const formData = new URLSearchParams();
+      formData.append('token', data.token);
+      formData.append('email', data.email);
+      formData.append('password', data.password);
+      formData.append('password_confirmation', data.password_confirmation);
+
+      const response = await apiClient.post('/api/auth/password/reset', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      if (response.data.success) {
+        dispatch(resetPasswordSuccess({
+          message: response.data.message,
+        }));
+        toast.success(response.data.message || 'Password reset successful');
+        return { success: true };
+      } else {
+        dispatch(resetPasswordFailure({ message: response.data.message || 'Reset failed' }));
+        toast.error(response.data.message || 'Reset failed');
+        return { success: false, error: response.data.message };
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Reset failed';
+      const fieldErrors = error.response?.data?.errors || {};
+      dispatch(resetPasswordFailure({ message: errorMessage, fieldErrors }));
       toast.error(errorMessage);
       return { success: false, error: errorMessage, fieldErrors };
     }
@@ -260,6 +336,9 @@ export const AuthProvider = ({ children }) => {
       register,
       updateProfile,
       changePassword,
+
+      forgotPassword,
+      resetPassword,
       logout: handleLogout,
       clearError: clearAuthError,
       clearSuccess: clearAuthSuccess,

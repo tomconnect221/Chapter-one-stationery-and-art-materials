@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { setWishlist } from '../store/wishlistSlice';
 
 export const useWishlist = () => {
     const [loading, setLoading] = useState(false);
     const { token } = useSelector(state => state.auth);
+    const dispatch = useDispatch();
     const baseUrl = import.meta.env.VITE_API_URL || '';
 
     const addToWishlist = async (productId) => {
@@ -32,12 +34,32 @@ export const useWishlist = () => {
 
             if (response.data.success) {
                 toast.success(response.data.message || 'Product added to wishlist');
+                // Update local Redux state to stay in sync
+                const currentWishlist = JSON.parse(localStorage.getItem('wishlistIds') || '[]');
+                if (!currentWishlist.includes(productId)) {
+                    const newWishlist = [...currentWishlist, productId];
+                    localStorage.setItem('wishlistIds', JSON.stringify(newWishlist));
+                    dispatch(setWishlist(newWishlist));
+                }
                 return true;
             }
         } catch (error) {
             console.error('Error adding to wishlist:', error);
-            if (error.response?.status === 409) {
+            const errorMessage = error.response?.data?.message || '';
+            
+            // Handle "already in wishlist" gracefully - treat as success
+            if (error.response?.status === 409 || 
+                error.response?.status === 400 || 
+                errorMessage.toLowerCase().includes('already')) {
                 toast.info('Product is already in your wishlist');
+                // Update local Redux state to stay in sync even if it was already there
+                const currentWishlist = JSON.parse(localStorage.getItem('wishlistIds') || '[]');
+                if (!currentWishlist.includes(productId)) {
+                    const newWishlist = [...currentWishlist, productId];
+                    localStorage.setItem('wishlistIds', JSON.stringify(newWishlist));
+                    dispatch(setWishlist(newWishlist));
+                }
+                return true;
             } else {
                 toast.error('Failed to add product to wishlist');
             }
@@ -47,7 +69,7 @@ export const useWishlist = () => {
         }
     };
 
-    const removeFromWishlist = async (wishlistId) => {
+    const removeFromWishlist = async (wishlistId, productId = null) => {
         if (!token) {
             toast.error('Please login to manage wishlist');
             return false;
@@ -63,6 +85,13 @@ export const useWishlist = () => {
 
             if (response.data.success) {
                 toast.success(response.data.message || 'Product removed from wishlist');
+                // Update local Redux state to stay in sync
+                if (productId) {
+                    const currentWishlist = JSON.parse(localStorage.getItem('wishlistIds') || '[]');
+                    const newWishlist = currentWishlist.filter(id => id !== productId);
+                    localStorage.setItem('wishlistIds', JSON.stringify(newWishlist));
+                    dispatch(setWishlist(newWishlist));
+                }
                 return true;
             }
         } catch (error) {

@@ -3,6 +3,93 @@
   font-size: 28px;
 }
 
+/* Deliveries Header */
+.deliveries-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.deliveries-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.deliveries-header-title h1 {
+  color: white;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.deliveries-header-title p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 4px 0 0 0;
+  font-size: 14px;
+}
+
+.location-status-badge {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.location-status-badge .status-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.location-status-badge .status-text {
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Header Stats */
+.header-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.header-stat-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 16px;
+  border-radius: 16px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.header-stat-card.earnings {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-stat-value {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.header-stat-card.earnings .header-stat-value {
+  font-size: 20px;
+}
+
+.header-stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* Deliveries Section */
 .deliveries-section {
   background: white;
@@ -134,6 +221,18 @@
   gap: 8px;
 }
 
+/* Delivery Card Full Width - for grid layout */
+.delivery-card-grid {
+  width: 100%;
+  display: block;
+  cursor: pointer;
+}
+
+.delivery-info-full {
+  width: 100%;
+  display: block;
+}
+
 /* Dispatch Overview */
 .dispatch-overview {
   display: grid;
@@ -221,6 +320,10 @@
 }
 
 @media (max-width: 768px) {
+  .deliveries-header-content {
+  display: block;
+
+}
   .metrics-grid {
     grid-template-columns: 1fr;
   }

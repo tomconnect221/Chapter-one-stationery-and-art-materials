@@ -2,6 +2,7 @@
 .branches-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding-top: 160px;
 }
 
 /* Loading State */
@@ -525,6 +526,9 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .branches-container{
+    padding-top: 50px;
+  }
   .search-section {
 
   max-width: 100%;

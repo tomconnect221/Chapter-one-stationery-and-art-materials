@@ -5,19 +5,18 @@
     right: 0;
     background: #fff;
     border-top: 1px solid #e0e0e0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08), 0 -1px 3px rgba(0, 0, 0, 0.06);
     z-index: 1000;
     display: none;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    
 }
 
 .nav-container {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 8px 0 12px 0;
+    padding: 10px 8px 14px 8px;
     max-width: 100%;
     position: relative;
 }
@@ -26,105 +25,141 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-decoration: none;
-    color:  #f68b1e;
+    color: #f68b1e;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px 12px;
+    /* padding: 10px 14px; */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 60px;
-    border-radius: 12px;
-    position: relative;
-    overflow: hidden;
-    
+    min-width: 64px;
+   text-align: center;
+    -webkit-tap-highlight-color: transparent;
+   
+
 }
 
-.nav-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: #667eea;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: translateX(-50%);
-}
 
-.nav-item:hover::before,
-.nav-item.active::before {
-    width: 80%;
-}
 
 .nav-item:hover {
     color: #667eea;
-    background: rgba(245, 195, 75, 0.1);
-    transform: translateY(-2px);
+    background: rgba(245, 195, 75, 0.12);
+    transform: translateY(-3px);
+}
+
+.nav-item.active .mobile-nav-icon {
+    animation: bounceIcon 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
 }
 
 .nav-item.active {
     color: #667eea;
-    background: rgba(245, 195, 75, 0.15);
+    background: rgba(245, 195, 75, 0.18);
+    animation: springItem 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-.nav-item.active .nav-icon {
-    transform: scale(1.1);
+@keyframes bounceIcon {
+    0% {
+        transform: scale(0.8);
+    }
+
+    45% {
+        transform: scale(1.25);
+    }
+
+    70% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1.15);
+    }
 }
 
-.nav-icon {
+@keyframes springItem {
+    0% {
+        transform: translateY(0);
+    }
+
+    30% {
+        transform: translateY(-5px);
+    }
+
+    50% {
+        transform: translateY(0);
+    }
+
+    70% {
+        transform: translateY(-2px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.mobile-nav-icon {
     position: relative;
-    left:5px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-icon i {
-    font-size: 20px;
-    transition: all 0.3s ease;
-}
-
-.nav-item:hover .nav-icon i {
-    transform: scale(1.1);
-}
-
-.nav-badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background: linear-gradient(135deg, #ff4444, #ff6b6b);
-    color: white;
-    border-radius: 10px;
-    min-width: 18px;
-    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
-    font-weight: bold;
-    padding: 0 4px;
-    box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+}
+
+.mobile-nav-icon i {
+    font-size: 22px;
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.nav-item:hover .mobile-nav-icon i {
+    transform: scale(1.1);
+}
+
+/* Enhanced badge styling */
+.nav-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #ff4444, #ff6b6b);
+    color: white;
+    border-radius: 12px;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 5px;
+    box-shadow: 0 2px 6px rgba(255, 68, 68, 0.4), 0 0 0 2px #fff;
     animation: pulse 2s infinite;
+    letter-spacing: -0.5px;
 }
 
 @keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
+
+    0%,
     100% {
         transform: scale(1);
+        box-shadow: 0 2px 6px rgba(255, 68, 68, 0.4), 0 0 0 2px #fff;
+    }
+
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 3px 8px rgba(255, 68, 68, 0.5), 0 0 0 2px #fff;
     }
 }
 
 .nav-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     text-align: center;
     transition: all 0.3s ease;
-    line-height: 1.2;
+    line-height: 1.3;
+    letter-spacing: 0.2px;
+    margin-top: 2px;
 }
 
 .nav-item:hover .nav-label,
@@ -132,16 +167,21 @@
     font-weight: 600;
 }
 
-/* Floating effect */
+/* Subtle gradient overlay */
 .mobile-bottom-nav::before {
     content: '';
     position: absolute;
-    top: -10px;
-    left: 20px;
-    right: 20px;
-    height: 10px;
-    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.05));
-    border-radius: 20px 20px 0 0;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.03));
+    pointer-events: none;
+}
+
+/* Safe area for notched devices */
+.mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Show only on mobile */
@@ -149,52 +189,65 @@
     .mobile-bottom-nav {
         display: block;
     }
-    
+
     /* Add bottom padding to body to prevent content overlap */
     body {
-        padding-bottom: 75px;
+        padding-bottom: 80px;
     }
 }
 
 @media (max-width: 480px) {
     .nav-container {
-        padding: 6px 0 10px 0;
+        padding: 8px 4px 12px 4px;
     }
-    
+
     .nav-item {
-        min-width: 50px;
-        padding: 6px 8px;
+        min-width: 56px;
+        padding: 8px 10px;
     }
-    
-    .nav-icon i {
-        font-size: 18px;
+
+    .mobile-nav-icon i {
+        font-size: 20px;
     }
-    
+
     .nav-label {
-        font-size: 9px;
+        font-size: 10px;
     }
-    
+
     .nav-badge {
-        min-width: 16px;
-        height: 16px;
-        font-size: 8px;
-        top: -4px;
-        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        font-size: 9px;
+        top: -6px;
+        right: -6px;
     }
 }
 
 @media (max-width: 360px) {
+    .nav-container {
+        padding: 6px 2px 10px 2px;
+    }
+
     .nav-item {
-        min-width: 45px;
-        padding: 6px 4px;
+        min-width: 50px;
+        padding: 6px 6px;
+        border-radius: 12px;
     }
-    
-    .nav-icon i {
-        font-size: 16px;
+
+    .mobile-nav-icon i {
+        font-size: 18px;
     }
-    
+
     .nav-label {
+        font-size: 9px;
+    }
+
+    .nav-badge {
+        min-width: 16px;
+        height: 16px;
         font-size: 8px;
+        top: -5px;
+        right: -5px;
     }
 }
 
@@ -203,22 +256,62 @@
     .mobile-bottom-nav {
         background: #fff;
         border-top-color: #333;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15), 0 -1px 3px rgba(0, 0, 0, 0.1);
     }
-    
+
     .nav-item {
         color: #f68b1e;
     }
-    
+
     .nav-item:hover,
     .nav-item.active {
         color: #667eea;
     }
-    
+
     .nav-item:hover {
         background: rgba(245, 195, 75, 0.2);
     }
-    
+
     .nav-item.active {
         background: rgba(245, 195, 75, 0.25);
     }
+
+    .mobile-bottom-nav::before {
+        background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05));
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+
+    .nav-item,
+    .mobile-nav-icon,
+    .mobile-nav-icon i,
+    .nav-label,
+    .nav-item::before {
+        transition: none;
+    }
+
+    .nav-badge {
+        animation: none;
+    }
+}
+
+/* Active state ripple effect (subtle) */
+.nav-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: radial-gradient(circle, rgba(245, 195, 75, 0.3) 0%, transparent 70%);
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.nav-item:active::after {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.1s;
 }

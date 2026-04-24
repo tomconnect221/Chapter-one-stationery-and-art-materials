@@ -5,17 +5,75 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart as addToCartAction, removeFromCart, setQty } from '../../store/cartSlice';
 import { useWishlist } from '../../hooks/useWishlist';
 import { toast } from 'react-toastify';
-import { FaHeart, FaRegHeart, FaEye, FaTruck, FaShoppingCart, FaStar, FaFire } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaEye, FaTruck, FaShoppingCart, FaStar, FaFire, FaTimesCircle } from 'react-icons/fa';
 import './style.css';
 
-export default function ProductItem({ view, product, onAddToCart, isWishlisted, wishlistId }) {
+// Helper function to check if ad is still valid (not expired)
+// Checks both array format (ads) and flat field format (isPromo, ad_discount_type, etc.)
+const isAdNotExpired = (product) => {
+    if (!product) {
+        return false;
+    }
+    
+    // Check for flat ad fields from PromoProducts (isPromo, ad_discount_type, ad_discount_value)
+    const hasFlatAdFields = product.isPromo || product.ad_discount_type || product.ad_discount_value;
+    if (hasFlatAdFields) {
+        // For PromoProducts, check if there's an ad_end_date field
+        if (product.ad_end_date) {
+            const now = new Date();
+            const endDate = new Date(product.ad_end_date);
+            return now <= endDate;
+        }
+        // If no end date provided but has flat ad fields, consider it valid
+        return true;
+    }
+    
+    // Original check for ads array format (Shop, Homepage)
+    if (!product.ads || product.ads.length === 0) {
+        return false;
+    }
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Check each ad - if any is valid, return true
+    for (const ad of product.ads) {
+        if (!ad.ends_at) {
+            continue;
+        }
+        
+        const endDate = new Date(ad.ends_at);
+        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        // Ad is valid if today is before or equal to end date
+        if (today <= endDateOnly) {
+            return true;
+        }
+    }
+    
+    return false;
+};
+
+export default function ProductItem({ view, product, onAddToCart, isWishlisted, wishlistId, isOnWishlistPage, onRemoveFromWishlist }) {
     const dispatch = useDispatch();
     const cartItems = useSelector(s => (s.cart && s.cart.items) || []);
     const { addToWishlist, removeFromWishlist, loading: wishlistLoading } = useWishlist();
     const [loading, setLoading] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
-
+    
+    // Check if ad is still valid (not expired)
+    const adIsValid = isAdNotExpired(product);
+    
+    // If ad is expired, override the discount-related fields
+    const isPromo = product.isPromo && adIsValid;
+    const hasDiscount = product.hasDiscount && adIsValid;
+    const discountedPrice = adIsValid ? product.discountedPrice : null;
+    const discountPercentage = adIsValid ? product.discountPercentage : 0;
+    const discountAmount = adIsValid ? product.discountAmount : 0;
+    const displayDiscountedPrice = adIsValid ? product.displayDiscountedPrice : null;
+    
+    console.log('alalalalalalalalal', product);
     // Get cart item if exists
     const cartItem = cartItems.find(item => item.id === product.id);
     const isInCart = Boolean(cartItem);
@@ -42,14 +100,18 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
         setTimeout(() => {
             try {
                 let result;
+                // Use discounted price if available AND ad is valid, otherwise use original price
+                const priceToUse = (hasDiscount && discountedPrice) ? discountedPrice : parseFloat(p.price);
+                const productToAdd = { ...p, price: priceToUse, quantity: 1 };
+                
                 if (onAddToCart) {
                     try {
-                        result = onAddToCart({ ...p, quantity: 1 });
+                        result = onAddToCart(productToAdd);
                     } catch (err) {
                         console.error('onAddToCart threw', err);
                     }
                 } else {
-                    result = doAdd({ ...p, quantity: 1 });
+                    result = doAdd(productToAdd);
                 }
 
                 if (result === 'added') {
@@ -96,9 +158,8 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
         </div>
     );
 
-    // Calculate discount percentage
-    const discount = product.sale_price && product.price ? 
-        Math.round(((product.sale_price - product.price) / product.sale_price) * 100) : 0;
+    // Calculate discount percentage - using the new price structure and computed hasDiscount
+    const discount = hasDiscount ? discountPercentage : 0;
 
     // Format price
     const formatPrice = (price) => {
@@ -138,7 +199,7 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
     // Determine stock status
     const getStockStatus = () => {
         if (!product.stock_quantity) return { text: 'Out of Stock', class: 'item-out-of-stock' };
-        if (product.stock_quantity <= product.min_stock_level) return { text: 'Low Stock', class: 'item-low-stock' };
+        if (product.stock_quantity <= product.min_stock_level) return { text: 'Limited stock available', class: 'item-low-stock' };
         return { text: 'In Stock', class: 'item-in-stock' };
     };
 
@@ -163,10 +224,16 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
     };
 
     return (
-        <div className={` ${view === 'home' ? 'col-lg-3 col-xl-2 col-6' : 'col-lg-2 col-xl-3'}  col-sm-6 col-md-3   g-1 `}>
+        <div className={` ${view === 'home' ? 'col-lg-3 col-xl-2 col-6' : 'col-lg-2 col-xl-3 col-6'}  col-sm-6 col-md-3   g-1 `}>
             <div className="item-card ">
                 {/* Badges Container */}
                 <div className="item-badges-container ">
+                    {isPromo && (
+                        <div className="item-promo-badge " style={{ backgroundColor: 'red', color: '#fff', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FaFire className="item-fire-icon" style={{ fontSize: '12px' }} />
+                            SALE
+                        </div>
+                    )}
                     {discount > 0 && (
                         <div className="item-discount-badge ">
                             <FaFire className="item-fire-icon" />
@@ -213,10 +280,18 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                 {/* Quick Actions */}
                 <div className="item-quick-actions ">
                     <button 
-                        className={`item-action-btn item-wishlist-btn ${isWishlisted ? 'item-wishlist-active' : ''}`}
+                        className={`item-action-btn item-wishlist-btn ${isWishlisted ? 'item-wishlist-active' : ''} ${isOnWishlistPage ? 'item-remove-wishlist' : ''}`}
                         onClick={async () => {
-                            if (isWishlisted && wishlistId) {
-                                await removeFromWishlist(wishlistId);
+                            // Prevent multiple clicks
+                            if (wishlistLoading) return;
+                            
+                            console.log('Wishlist button clicked:', { isOnWishlistPage, wishlistId, productId: product.id });
+                            
+                            if (isOnWishlistPage && onRemoveFromWishlist && wishlistId) {
+                                // Use the passed callback for instant removal on wishlist page
+                                await onRemoveFromWishlist(wishlistId, product.id);
+                            } else if (isWishlisted && wishlistId) {
+                                await removeFromWishlist(wishlistId, product.id);
                             } else {
                                 await addToWishlist(product.id);
                             }
@@ -226,6 +301,8 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                     >
                         {wishlistLoading ? (
                             <div className="spinner-border spinner-border-sm" role="status"></div>
+                        ) : isOnWishlistPage ? (
+                            <FaTimesCircle />
                         ) : (
                             isWishlisted ? <FaHeart /> : <FaRegHeart />
                         )}
@@ -247,7 +324,7 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                         )} */}
                         
                         {/* Rating */}
-                        <div className="item-rating  p-0 m-0 ">
+                        {/* <div className="item-rating  p-0 m-0 ">
                             <div className="item-stars ">
                                 {[...Array(5)].map((_, i) => (
                                     <FaStar 
@@ -256,8 +333,8 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                                     />
                                 ))}
                             </div>
-                            {/* <span className="item-rating-text ">({reviewCount})</span> */}
-                        </div>
+                            <span className="item-rating-text ">({reviewCount})</span>
+                        </div> */}
                     </div>
 
                     <Link to={`/product/${product.id}`} className="item-name-link m-0 p-0 ">
@@ -266,12 +343,22 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
 
                     {/* Pricing */}
                     <div className="item-pricing p-0 m-0 ">
-                        <div className="item-current-price p-0 m-0 ">{formatPrice(product.price)}</div>
-                        {product.sale_price && product.sale_price > product.price && (
-                            <div className="item-price-comparison ">
-                                <span className="item-original-price ">{formatPrice(product.sale_price)}</span>
-                                <span className="item-savings ">You save {formatPrice(product.sale_price - product.price)}</span>
-                            </div>
+                        {hasDiscount ? (
+                            <>
+                                <div className="item-current-price p-0 m-0 " style={{ color: '#28a745', fontWeight: '700' }}>
+                                    {displayDiscountedPrice}
+                                </div>
+                                <div className="item-price-comparison ">
+                                    <span className="item-original-price " style={{ textDecoration: 'line-through', color: '#999' }}>
+                                        {product.displayPrice}
+                                    </span>
+                                    <span className="item-savings " style={{ color: '#28a745', fontSize: '12px', fontWeight: '600' }}>
+                                        Save {formatPrice(discountAmount)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="item-current-price p-0 m-0 ">{product.displayPrice}</div>
                         )}
                     </div>
 

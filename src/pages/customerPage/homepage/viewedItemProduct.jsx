@@ -33,15 +33,52 @@ const ViewedItemProduct = () => {
 
                 if (response.data.success) {
                     // Transform API data to match component structure
-                    const transformedProducts = response.data.data.map(item => ({
-                        id: item.product.id,
-                        name: item.product.name,
-                        price: item.product.price && !isNaN(item.product.price) ? parseFloat(item.product.price) : 0,
-                        image: item.product.image,
-                        description: item.product.description,
-                        stock_quantity: item.product.stock_quantity,
-                        is_active: item.product.is_active
-                    }));
+                    const transformedProducts = response.data.data.map(item => {
+                        const product = item.product;
+                        
+                        // Calculate if product has a discount from ads
+                        const hasDiscount = product.price_after_ad_discount && parseFloat(product.price_after_ad_discount) < parseFloat(product.price);
+                        const discountAmount = hasDiscount ? parseFloat(product.price) - parseFloat(product.price_after_ad_discount) : 0;
+                        const discountPercentage = hasDiscount ? Math.round((discountAmount / parseFloat(product.price)) * 100) : 0;
+                        
+                        // Check if product is promotional/ad-based
+                        const isPromo = product.ads && product.ads.length > 0;
+                        
+                        return {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price && !isNaN(product.price) ? parseFloat(product.price) : 0,
+                            image: product.image,
+                            description: product.description,
+                            stock_quantity: product.stock_quantity,
+                            is_active: product.is_active,
+                            min_stock_level: product.min_stock_level || 0,
+                            is_featured: product.is_featured || false,
+                            requires_shipping: product.requires_shipping || false,
+                            ads: product.ads || [],
+                            // Add discount fields
+                            originalPrice: parseFloat(product.price),
+                            displayPrice: new Intl.NumberFormat('en-NG', {
+                                style: 'currency',
+                                currency: 'NGN',
+                                maximumFractionDigits: 0
+                            }).format(parseFloat(product.price)),
+                            discountedPrice: hasDiscount ? parseFloat(product.price_after_ad_discount) : parseFloat(product.price),
+                            displayDiscountedPrice: hasDiscount ? new Intl.NumberFormat('en-NG', {
+                                style: 'currency',
+                                currency: 'NGN',
+                                maximumFractionDigits: 0
+                            }).format(parseFloat(product.price_after_ad_discount)) : new Intl.NumberFormat('en-NG', {
+                                style: 'currency',
+                                currency: 'NGN',
+                                maximumFractionDigits: 0
+                            }).format(parseFloat(product.price)),
+                            hasDiscount: hasDiscount,
+                            discountPercentage: discountPercentage,
+                            discountAmount: discountAmount,
+                            isPromo: isPromo,
+                        };
+                    });
                     setRecentlyViewed(transformedProducts);
                 }
             } catch (error) {

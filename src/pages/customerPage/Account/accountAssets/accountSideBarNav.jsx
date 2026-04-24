@@ -5,7 +5,7 @@ import { logout } from '../../../../store/authSlice';
 import LogoutModal from '../../../../components/LogoutModal';
 import './AccountSidebar.css';
 const AccountSidebar = ({ user }) => {
-    const { user: authUser } = useSelector(state => state.auth);
+    const { user: authUser, isAuthenticated } = useSelector(state => state.auth);
     const currentUser = authUser || user;
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -83,33 +83,35 @@ const AccountSidebar = ({ user }) => {
 
     return (
         <>
-            {/* Mobile Navigation Bar */}
-            <div className='col-lg-2'>
-                <div className="dashboard-mobile-nav ">
-                    <div className="mobile-nav-dropdown">
-                        <button className="mobile-nav-btn" onClick={toggleMobileMenu}>
-                            <span className="menu-icon">☰</span>
-                            Dashboard Navigation
-                        </button>
+            {/* Mobile Navigation Bar - Only show if authenticated */}
+            <div className='col-lg-2 account-sidebar-container'>
+                {/* {isAuthenticated && (
+                    <div className="dashboard-mobile-nav ">
+                        <div className="mobile-nav-dropdown">
+                            <button className="mobile-nav-btn" onClick={toggleMobileMenu}>
+                                <span className="menu-icon">☰</span>
+                                Dashboard Navigation
+                            </button>
 
-                        <div className={`mobile-nav-menu ${isMobileMenuOpen ? 'active' : ''}`}>
-                            {menuItems.map((item) => (
-                                <div
-                                    key={item.path}
-                                    className={`mobile-nav-item ${item.active ? 'active' : ''}`}
-                                    onClick={() => handleNavigation(item.path)}
-                                >
-                                    <span className="nav-icon">{item.icon}</span>
-                                    {item.label}
+                            <div className={`mobile-nav-menu ${isMobileMenuOpen ? 'active' : ''}`}>
+                                {menuItems.map((item) => (
+                                    <div
+                                        key={item.path}
+                                        className={`mobile-nav-item ${item.active ? 'active' : ''}`}
+                                        onClick={() => handleNavigation(item.path)}
+                                    >
+                                        <span className="nav-icon">{item.icon}</span>
+                                        {item.label}
+                                    </div>
+                                ))}
+                                <div className="mobile-nav-item logout" onClick={handleLogoutClick}>
+                                    <span className="nav-icon">🚪</span>
+                                    Logout
                                 </div>
-                            ))}
-                            <div className="mobile-nav-item logout" onClick={handleLogoutClick}>
-                                <span className="nav-icon">🚪</span>
-                                Logout
                             </div>
                         </div>
                     </div>
-                </div>
+                )} */}
 
                 {/* Desktop Sidebar */}
                 <div className="account-sidebar">
@@ -139,7 +141,7 @@ const AccountSidebar = ({ user }) => {
                             {menuItems.map((item) => (
                                 <li key={item.path} className="nav-ite mb-2">
                                     <div
-                                        className={`nav-link ${item.active ? 'active' : ''}`}
+                                        className={`nav-link d-flex ${item.active ? 'active' : ''}`}
                                         onClick={() => handleNavigation(item.path)}
                                     >
                                         <span className="nav-icon">{item.icon}</span>
@@ -147,8 +149,8 @@ const AccountSidebar = ({ user }) => {
                                     </div>
                                 </li>
                             ))}
-                            <li className="nav-ite">
-                                <div className="nav-link logout" onClick={handleLogoutClick}>
+                            <li className="nav-ite ">
+                                <div className="nav-link w-100 d-flex logout" onClick={handleLogoutClick}>
                                     <span className="nav-icon">🚪</span>
                                     <span className="nav-text">Logout</span>
                                 </div>

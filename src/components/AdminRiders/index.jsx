@@ -6,6 +6,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import '../AdminProducts/AdminProducts.css';
 import './RiderModal.css';
 
+// Import new separate components
+import RiderView from './RiderView';
+import RiderForm from './RiderForm';
+
 const AdminRiders = ({ userType = 'admin', userBranch = null }) => {
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +19,7 @@ const AdminRiders = ({ userType = 'admin', userBranch = null }) => {
 
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [modalMode, setModalMode] = useState('add');
+  const [modalMode, setModalMode] = useState('list'); // 'list', 'view', 'add', 'edit'
   const [selectedRider, setSelectedRider] = useState(null);
   const [riderToDelete, setRiderToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +32,6 @@ const AdminRiders = ({ userType = 'admin', userBranch = null }) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const { token, user } = useSelector((state) => state.auth);
-console.log(user);
   const vehicleTypes = ['bike', 'car', 'van', 'bicycle'];
 
   useEffect(() => {
@@ -44,7 +47,7 @@ console.log(user);
           Authorization: `Bearer ${token}`,
         },
       });
- console.log(response)
+
       if (response.data.success) {
         const apiRiders = response.data.data;
         const mappedRiders = apiRiders.map(rider => ({
@@ -120,7 +123,6 @@ console.log(user);
       is_active: true
     });
     setFormErrors({});
-    setShowModal(true);
   };
 
   const handleEditRider = (rider) => {
@@ -138,7 +140,6 @@ console.log(user);
       password_confirmation: ''
     });
     setFormErrors({});
-    setShowModal(true);
   };
 
   const fetchRiderDetails = async (riderId) => {
@@ -168,7 +169,6 @@ console.log(user);
 
   const handleViewRider = async (rider) => {
     setModalMode('view');
-    setShowModal(true);
     
     // Fetch detailed rider information
     const detailedRider = await fetchRiderDetails(rider.id);
@@ -177,6 +177,12 @@ console.log(user);
     } else {
       setSelectedRider(rider); // Fallback to basic info
     }
+  };
+
+  const handleBackToList = () => {
+    setModalMode('list');
+    setSelectedRider(null);
+    setFormErrors({});
   };
 
   const handleDeleteClick = (rider) => {
@@ -251,7 +257,7 @@ console.log(user);
 
         if (response.data.success) {
           toast.success('Rider created successfully');
-          setShowModal(false);
+          setModalMode('list');
           fetchRiders();
         }
       } else {
@@ -277,7 +283,7 @@ console.log(user);
 
         if (response.data.success) {
           toast.success('Rider updated successfully');
-          setShowModal(false);
+          setModalMode('list');
           fetchRiders();
         }
       }
@@ -301,42 +307,41 @@ console.log(user);
     }
   };
 
-  const handleStatusChange = async (riderId, newStatus) => {
-    try {
-      const rider = riders.find(r => r.id === riderId);
-      if (!rider) return;
-
-      const formData = new URLSearchParams();
-      formData.append('name', rider.name);
-      formData.append('email', rider.email);
-      formData.append('phone', rider.phone);
-      formData.append('license_number', rider.license_number);
-      formData.append('vehicle_type', rider.vehicle_type);
-      formData.append('vehicle_number', rider.vehicle_number);
-      formData.append('is_active', newStatus === 'active' ? '1' : '0');
-
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/admin/riders/${riderId}`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        toast.success('Rider status updated successfully');
-        setRiders(riders.map(r =>
-          r.id === riderId ? { ...r, is_active: newStatus === 'active', active_status: newStatus } : r
-        ));
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to update rider status';
-      toast.error(errorMessage);
-    }
-  };
+  // Render based on view mode
+  if (modalMode === 'view' || modalMode === 'edit' || modalMode === 'add') {
+    return (
+      <div className="admin-products">
+        <ToastContainer />
+        {modalMode === 'view' ? (
+          <RiderView
+            rider={selectedRider}
+            onBack={handleBackToList}
+            onEdit={handleEditRider}
+            canEdit={canEdit}
+          />
+        ) : (
+          <RiderForm
+            mode={modalMode}
+            rider={selectedRider}
+            onSave={handleSaveRider}
+            onCancel={handleBackToList}
+            onChange={setSelectedRider}
+            errors={formErrors}
+            loading={saveLoading}
+            vehicleTypes={vehicleTypes}
+          />
+        )}
+        {showDeleteModal && (
+          <DeleteConfirmationModal
+            rider={riderToDelete}
+            onConfirm={handleDelete}
+            onCancel={handleCancelDelete}
+            loading={deleteLoading === riderToDelete?.id}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -396,28 +401,24 @@ console.log(user);
         <div className="stat-card d-flex align-items-center gap-3">
           <div className="stat-icon">🏍️</div>
           <div className="stat-info"> 
-            {/* <div className="stat-value">{riders.length}</div> */}
             <div className="stat-label ">Total Riders ({riders.length})</div>
           </div>
         </div>
         <div className="stat-card d-flex align-items-center gap-3">
           <div className="stat-icon">✅</div>
           <div className="stat-info">
-            {/* <div className="stat-value">{riders.filter(r => r.active_status === 'active').length}</div> */}
             <div className="stat-label">Active ({riders.filter(r => r.active_status === 'active').length})</div>
           </div>
         </div>
         <div className="stat-card d-flex align-items-center gap-3">
           <div className="stat-icon">🚚</div>
           <div className="stat-info">
-            {/* <div className="stat-value">{riders.filter(r => r.status === 'online').length}</div> */}
             <div className="stat-label">Online ({riders.filter(r => r.status === 'online').length})</div>
           </div>
         </div>
         <div className="stat-card d-flex align-items-center gap-3">
           <div className="stat-icon">📱</div>
           <div className="stat-info">
-            {/* <div className="stat-value">{riders.filter(r => r.status === 'offline').length}</div> */}
             <div className="stat-label">Offline ({riders.filter(r => r.status === 'offline').length})</div>
           </div>
         </div>
@@ -496,31 +497,9 @@ console.log(user);
                     </div>
                   </td>
                   <td>
-                    <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                      {/* {canEdit ? (
-                        <select
-                          value={rider.active_status}
-                          onChange={(e) => handleStatusChange(rider.id, e.target.value)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid #dee2e6',
-                            fontSize: '12px',
-                            fontWeight: '600'
-                          }}
-                        >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
-                      ) : (
-                        <span className={`status-badge ${rider.active_status === 'active' ? 'active' : 'inactive'}`}>
-                          {rider.active_status}
-                        </span>
-                      )} */}
-                      <span className={`status-badge text-center badge ${rider.status === 'available' ? 'active' : 'inactive'}`}>
-                        {rider.status}
-                      </span>
-                    </div>
+                    <span className={`status-badge text-center badge ${rider.status === 'available' ? 'active' : 'inactive'}`}>
+                      {rider.status}
+                    </span>
                   </td>
                   <td>
                     <span style={{fontSize: '13px'}}>
@@ -646,21 +625,6 @@ console.log(user);
         </div>
       )}
 
-      {showModal && (
-        <RiderModal
-          mode={modalMode}
-          rider={selectedRider}
-          onSave={handleSaveRider}
-          onClose={() => setShowModal(false)}
-          onChange={setSelectedRider}
-          errors={formErrors}
-          loading={saveLoading}
-          detailsLoading={detailsLoading}
-          vehicleTypes={vehicleTypes}
-          canEdit={canEdit}
-        />
-      )}
-
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <DeleteConfirmationModal
@@ -721,375 +685,6 @@ const DeleteConfirmationModal = ({ rider, onConfirm, onCancel, loading }) => {
               'Delete Rider'
             )}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const RiderModal = ({ mode, rider, onSave, onClose, onChange, errors, loading, detailsLoading, vehicleTypes, canEdit }) => {
-  const isView = mode === 'view';
-
-  const getVehicleIcon = (type) => {
-    const icons = {
-      bike: '🏍️',
-      car: '🚗',
-      van: '🚐',
-      bicycle: '🚲'
-    };
-    return icons[type] || '🚗';
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      online: '#28a745',
-      offline: '#6c757d',
-      busy: '#ffc107',
-      available: '#17a2b8'
-    };
-    return colors[status] || '#6c757d';
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="rider-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="rider-modal-header">
-          <div className="header-content">
-            <div className="rider-avatar">
-              <div className="avatar-circle">
-                {rider?.name ? rider.name.charAt(0).toUpperCase() : '👤'}
-              </div>
-            </div>
-            <div className="rider-title">
-              <h2>{rider?.name || 'Rider Details'}</h2>
-              <div className="rider-meta">
-                {isView && (
-                  <>
-                    <span 
-                      className="status-dot" 
-                      style={{ backgroundColor: getStatusColor(rider?.status) }}
-                    ></span>
-                    <span className="status-text">{rider?.status || 'Unknown'}</span>
-                    <span className="vehicle-info">
-                      {getVehicleIcon(rider?.vehicle_type)} {rider?.vehicle_type}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-        
-        {/* Body */}
-        <div className="rider-modal-body">
-          {detailsLoading ? (
-            <div className="loading-state">
-              <div className="loading-spinner"></div>
-              <p>Loading rider details...</p>
-            </div>
-          ) : rider ? (
-            <div className="rider-content">
-              {isView ? (
-                // View Mode - Card Layout
-                <div className="info-cards">
-                  <div className="info-card">
-                    <div className="card-header">
-                      <span className="card-icon">👤</span>
-                      <h3>Personal Information</h3>
-                    </div>
-                    <div className="card-content">
-                      <div className="info-row">
-                        <label>Full Name</label>
-                        <span className="info-value">{rider.name}</span>
-                      </div>
-                      <div className="info-row">
-                        <label>Email Address</label>
-                        <span className="info-value">{rider.email}</span>
-                      </div>
-                      <div className="info-row">
-                        <label>Phone Number</label>
-                        <span className="info-value">{rider.phone}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="info-card">
-                    <div className="card-header">
-                      <span className="card-icon">{getVehicleIcon(rider.vehicle_type)}</span>
-                      <h3>Vehicle Information</h3>
-                    </div>
-                    <div className="card-content">
-                      <div className="info-row">
-                        <label>License Number</label>
-                        <span className="info-value license-number">{rider.license_number}</span>
-                      </div>
-                      <div className="info-row">
-                        <label>Vehicle Type</label>
-                        <span className="info-value vehicle-type">
-                          {getVehicleIcon(rider.vehicle_type)} {rider.vehicle_type}
-                        </span>
-                      </div>
-                      <div className="info-row">
-                        <label>Vehicle Number</label>
-                        <span className="info-value vehicle-number">{rider.vehicle_number}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="info-card">
-                    <div className="card-header">
-                      <span className="card-icon">📊</span>
-                      <h3>Status & Activity</h3>
-                    </div>
-                    <div className="card-content">
-                      <div className="stats-grid">
-                        <div className="stat-item">
-                          <span className="stat-label">Current Status</span>
-                          <span className="stat-value status-badge" style={{ backgroundColor: getStatusColor(rider.status) }}>
-                            {rider.status}
-                          </span>
-                        </div>
-                        <div className="stat-item">
-                          <span className="stat-label">Account Status</span>
-                          <span className={`stat-value ${rider.is_active ? 'active' : 'inactive'}`}>
-                            {rider.is_active ? '✅ Active' : '❌ Inactive'}
-                          </span>
-                        </div>
-                        <div className="stat-item">
-                          <span className="stat-label">Joined Date</span>
-                          <span className="stat-value">{new Date(rider.created_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}</span>
-                        </div>
-                        <div className="stat-item">
-                          <span className="stat-label">Last Updated</span>
-                          <span className="stat-value">{new Date(rider.updated_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {rider.orders && rider.orders.length > 0 && (
-                    <div className="info-card">
-                      <div className="card-header">
-                        <span className="card-icon">📦</span>
-                        <h3>Recent Orders ({rider.orders.length})</h3>
-                      </div>
-                      <div className="card-content">
-                        <div className="orders-list">
-                          {rider.orders.map((order, index) => (
-                            <div key={index} className="order-item">
-                              <div className="order-info">
-                                <span className="order-id">#{order.id}</span>
-                                <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
-                              </div>
-                              <span className={`order-status status-${order.status?.toLowerCase()}`}>
-                                {order.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Edit/Add Mode - Form Layout
-                <div className="form-container">
-                  <div className="form-section">
-                    <h3 className="section-title">
-                      <span className="section-icon">👤</span>
-                      Personal Information
-                    </h3>
-                    <div className="form-grid">
-                      <div className="form-field">
-                        <label>Full Name *</label>
-                        <input
-                          type="text"
-                          value={rider.name || ''}
-                          onChange={(e) => onChange({ ...rider, name: e.target.value })}
-                          disabled={loading}
-                          placeholder="Enter full name"
-                          className={`modern-input ${errors.name ? 'error' : ''}`}
-                        />
-                        {errors.name && <span className="field-error">{errors.name[0]}</span>}
-                      </div>
-
-                      <div className="form-field">
-                        <label>Email Address *</label>
-                        <input
-                          type="email"
-                          value={rider.email || ''}
-                          onChange={(e) => onChange({ ...rider, email: e.target.value })}
-                          disabled={loading}
-                          placeholder="Enter email address"
-                          className={`modern-input ${errors.email ? 'error' : ''}`}
-                        />
-                        {errors.email && <span className="field-error">{errors.email[0]}</span>}
-                      </div>
-
-                      <div className="form-field">
-                        <label>Phone Number *</label>
-                        <input
-                          type="tel"
-                          value={rider.phone || ''}
-                          onChange={(e) => onChange({ ...rider, phone: e.target.value })}
-                          disabled={loading}
-                          placeholder="09058942480"
-                          className={`modern-input ${errors.phone ? 'error' : ''}`}
-                        />
-                        {errors.phone && <span className="field-error">{errors.phone[0]}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-section">
-                    <h3 className="section-title">
-                      <span className="section-icon">🚗</span>
-                      Vehicle Information
-                    </h3>
-                    <div className="form-grid">
-                      <div className="form-field">
-                        <label>License Number *</label>
-                        <input
-                          type="text"
-                          value={rider.license_number || ''}
-                          onChange={(e) => onChange({ ...rider, license_number: e.target.value })}
-                          disabled={loading}
-                          placeholder="Enter license number"
-                          className={`modern-input ${errors.license_number ? 'error' : ''}`}
-                        />
-                        {errors.license_number && <span className="field-error">{errors.license_number[0]}</span>}
-                      </div>
-
-                      <div className="form-field">
-                        <label>Vehicle Type *</label>
-                        <select
-                          value={rider.vehicle_type || 'bike'}
-                          onChange={(e) => onChange({ ...rider, vehicle_type: e.target.value })}
-                          disabled={loading}
-                          className={`modern-select ${errors.vehicle_type ? 'error' : ''}`}
-                        >
-                          {vehicleTypes.map(type => (
-                            <option key={type} value={type}>
-                              {getVehicleIcon(type)} {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.vehicle_type && <span className="field-error">{errors.vehicle_type[0]}</span>}
-                      </div>
-
-                      <div className="form-field">
-                        <label>Vehicle Number *</label>
-                        <input
-                          type="text"
-                          value={rider.vehicle_number || ''}
-                          onChange={(e) => onChange({ ...rider, vehicle_number: e.target.value })}
-                          disabled={loading}
-                          placeholder="Enter vehicle number"
-                          className={`modern-input ${errors.vehicle_number ? 'error' : ''}`}
-                        />
-                        {errors.vehicle_number && <span className="field-error">{errors.vehicle_number[0]}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  {mode === 'edit' && (
-                    <div className="form-section">
-                      <h3 className="section-title">
-                        <span className="section-icon">⚙️</span>
-                        Account Settings
-                      </h3>
-                      <div className="form-grid">
-                        <div className="form-field">
-                          <label>Account Status *</label>
-                          <select
-                            value={rider.is_active}
-                            onChange={(e) => onChange({ ...rider, is_active: e.target.value === 'true' })}
-                            disabled={loading}
-                            className="modern-select"
-                          >
-                            <option value={true}>✅ Active</option>
-                            <option value={false}>❌ Inactive</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="form-section">
-                    <h3 className="section-title">
-                      <span className="section-icon">🔒</span>
-                      {mode === 'add' ? 'Security' : 'Change Password'}
-                    </h3>
-                    <div className="form-grid">
-                      <div className="form-field">
-                        <label>
-                          {mode === 'add' ? 'Password *' : 'New Password (leave blank to keep current)'}
-                        </label>
-                        <input
-                          type="password"
-                          value={rider.password || ''}
-                          onChange={(e) => onChange({ ...rider, password: e.target.value })}
-                          disabled={loading}
-                          placeholder={mode === 'add' ? 'Enter password' : 'Enter new password'}
-                          className={`modern-input ${errors.password ? 'error' : ''}`}
-                        />
-                        {errors.password && <span className="field-error">{errors.password[0]}</span>}
-                      </div>
-
-                      <div className="form-field">
-                        <label>
-                          {mode === 'add' ? 'Confirm Password *' : 'Confirm New Password'}
-                        </label>
-                        <input
-                          type="password"
-                          value={rider.password_confirmation || ''}
-                          onChange={(e) => onChange({ ...rider, password_confirmation: e.target.value })}
-                          disabled={loading}
-                          placeholder={mode === 'add' ? 'Confirm password' : 'Confirm new password'}
-                          className={`modern-input ${errors.password_confirmation ? 'error' : ''}`}
-                        />
-                        {errors.password_confirmation && <span className="field-error">{errors.password_confirmation[0]}</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <span className="empty-icon">📭</span>
-              <p>No rider data available</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="rider-modal-footer">
-          <button className="btn-cancel" onClick={onClose} disabled={loading}>
-            {isView ? 'Close' : 'Cancel'}
-          </button>
-          {!isView && canEdit && (
-            <button className="btn-save" onClick={onSave} disabled={loading}>
-              {loading ? (
-                <>
-                  <div className="btn-spinner"></div>
-                  {mode === 'add' ? 'Creating...' : 'Updating...'}
-                </>
-              ) : (
-                mode === 'add' ? 'Add Rider' : 'Save Changes'
-              )}
-            </button>
-          )}
         </div>
       </div>
     </div>

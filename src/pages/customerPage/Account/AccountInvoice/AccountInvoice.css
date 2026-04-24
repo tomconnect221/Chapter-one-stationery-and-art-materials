@@ -21,13 +21,16 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
 }
-
+.invoice-containe-section{
+  padding-top:160px
+}
 /* Main Container */
 .invoice-container {
   background: var(--bg-white);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  width:100%
 }
 
 /* Header Section */
@@ -829,6 +832,9 @@
 }
 
 @media (max-width: 768px) {
+  .invoice-containe-section{
+  padding-top:50px
+}
   .invoice-header {
     padding: 24px 20px;
   }

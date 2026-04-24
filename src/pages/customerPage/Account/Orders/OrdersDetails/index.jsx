@@ -4,6 +4,7 @@ import axios from 'axios';
 import './OrderDetails.css';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+
 const OrderDetails = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const OrderDetails = () => {
             Authorization: `Bearer ${token}`
           }
         });
-        
+        console.log('Order Details Response:', response.data);
         if (response.data.success) {
           console.log(response.data.data);
           setOrder(response.data.data);
@@ -64,14 +65,42 @@ const OrderDetails = () => {
     });
   };
 
+  const getStatusClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return 'order-status delivered';
+      case 'cancelled':
+        return 'order-status cancelled';
+      case 'out_for_delivery':
+      case 'ready_for_delivery':
+        return 'order-status shipping';
+      default:
+        return 'order-status pending';
+    }
+  };
+
+  const getStatusText = (status) => {
+    const statusMap = {
+      pending: 'Pending',
+      preparing: 'Preparing',
+      confirmed: 'Confirmed',
+      ready_for_delivery: 'Out for Delivery',
+      out_for_delivery: 'Out for Delivery',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+      returned: 'Returned',
+    };
+    return statusMap[status?.toLowerCase()] || status;
+  };
+
   if (loading) {
     return (
       <div className="col-lg-10">
-        <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div className="loading-container">
           <div className="spinner-border text-warning" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
-          <p className="mt-3">Loading order details...</p>
+          <p>Loading order details...</p>
         </div>
       </div>
     );
@@ -80,7 +109,7 @@ const OrderDetails = () => {
   if (error || !order) {
     return (
       <div className="col-lg-10">
-        <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div className="error-container">
           <h3>Order not found</h3>
           <p>{error}</p>
           <button 
@@ -95,46 +124,28 @@ const OrderDetails = () => {
   }
 
   return (
-    <div className="col-lg-10">
-      <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', padding: '20px' }}>
+    <div className="col-lg-10 customer-order-details-section">
+      <div className="customer-order-details">
         
         {/* Header */}
-        <div style={{ backgroundColor: '#fff', padding: '20px', marginBottom: '20px', borderRadius: '4px' }}>
+        <div className="order-header">
           <button 
+            className="back-button text-primary"
             onClick={() => navigate('/account/orders')}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: '#f68b1e', 
-              fontSize: '14px',
-              marginBottom: '10px',
-              cursor: 'pointer'
-            }}
           >
             ← Back to Orders
           </button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="order-header-content">
             <div>
-              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>Order #{order.order_number}</h2>
-              <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
-                Placed on {formatDate(order.created_at)}
-              </p>
+              <h2>Order #{order.order_number}</h2>
+              <p>Placed on {formatDate(order.created_at)}</p>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ 
-                backgroundColor: order.status === 'delivered' ? '#4caf50' : 
-                              order.status === 'cancelled' ? '#f44336' : '#ff9800',
-                color: '#fff',
-                padding: '6px 12px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                {order.status}
+            <div className="order-header-right">
+              <span className={getStatusClass(order.status)}>
+                {getStatusText(order.status)}
               </span>
-              <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
-                Payment: <b style={{textTransform:'capitalize'}}> {order.payment_status} </b>
+              <p className="payment-status">
+                Payment: <b> {order.payment_status} </b>
               </p>
             </div>
           </div>
@@ -143,60 +154,47 @@ const OrderDetails = () => {
         <div className="row">
           {/* Left Column - Order Items */}
           <div className="col-lg-8">
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '4px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                Items in your Order
-              </h3>
+            <div className="order-items-card">
+              <h3>Items in your Order</h3>
               
               {order.order_items.map((item, index) => (
-                <div key={item.id} style={{ 
-                  display: 'flex', 
-                  padding: '20px 0',
-                  borderBottom: index < order.order_items.length - 1 ? '1px solid #eee' : 'none'
-                }}>
-                  <div style={{ width: '80px', height: '80px', marginRight: '15px' }}>
+                <div key={item.id} className="order-item w-100">
+                  <div className="order-item-image">
                     <img
                       src={getProductImage(item.product)}
                       alt={item.product.name}
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover', 
-                        borderRadius: '4px',
-                        border: '1px solid #eee'
-                      }}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/80x80?text=Product';
                       }}
                     />
                   </div>
                   
-                  <div style={{ flex: 1}}>
-                    <Link to={'/product/'+item.product.id} style={{textTransform:'capitalize', textDecoration:'none' , fontSize: '16px', fontWeight: '500', margin: '0 0 8px 0', color: '#333' }}>
+                  <div className="order-item-details">
+                    <Link to={'/product/'+item.product.id} className="order-item-name">
                       {item.product.name}
                     </Link>
                     
                     {item.product.description && (
-                      <p style={{ fontSize: '14px', color: '#666', margin: '0 0 8px 0', lineHeight: '1.4' }}>
+                      <p className="order-item-description">
                         {item.product.description.length > 100 ? 
                           `${item.product.description.substring(0, 100)}...` : 
                           item.product.description}
                       </p>
                     )}
                     
-                    <div style={{ display: 'flex', gap: '15px', fontSize: '12px', color: '#888' }}>
+                    <div className="order-item-meta">
                       {item.product.brand && <span>Brand: {item.product.brand}</span>}
                       {item.product.color && <span>Color: {item.product.color}</span>}
                       {item.product.size && <span>Size: {item.product.size}</span>}
                     </div>
                     
-                    <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '14px', color: '#666' }}>Qty: {item.quantity}</span>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#f68b1e' }}>
+                    <div className="order-item-pricing">
+                      <span className="order-item-quantity">Qty: {item.quantity}</span>
+                      <div className="order-item-price">
+                        <div className="order-item-total">
                           {formatPrice(item.total_price)}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#888' }}>
+                        <div className="order-item-unit-price">
                           {formatPrice(item.unit_price)} each
                         </div>
                       </div>
@@ -210,153 +208,117 @@ const OrderDetails = () => {
           {/* Right Column - Order Summary & Details */}
           <div className="col-lg-4">
             {/* Order Summary */}
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '4px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>Order Summary</h3>
+            <div className="order-summary-card">
+              <h3>Order Summary</h3>
               
-              <div style={{ borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div className="order-summary-content">
+                <div className="summary-row">
                   <span>Subtotal:</span>
                   <span>{formatPrice(order.subtotal)}</span>
                 </div>
                 
                 {parseFloat(order.delivery_fee) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div className="summary-row">
                     <span>Delivery Fee:</span>
                     <span>{formatPrice(order.delivery_fee)}</span>
                   </div>
                 )}
                 
                 {parseFloat(order.tax_amount) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div className="summary-row">
                     <span>Tax:</span>
                     <span>{formatPrice(order.tax_amount)}</span>
                   </div>
                 )}
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '600' }}>
+              <div className="order-summary-total">
                 <span>Total:</span>
-                <span style={{ color: '#f68b1e' }}>{formatPrice(order.total_amount)}</span>
+                <span>{formatPrice(order.total_amount)}</span>
               </div>
             </div>
 
             {/* Delivery Information */}
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '4px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>Delivery Details</h3>
+            <div className="delivery-details-card">
+              <h3>Delivery Details</h3>
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong style={{ fontSize: '14px', color: '#333' }}>Delivery Address</strong>
-                <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666', lineHeight: '1.4' }}>
-                  {order.delivery_address}
-                </p>
+              <div className="delivery-detail-item">
+                <strong>Delivery Address</strong>
+                <p>{order.delivery_address}</p>
               </div>
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong style={{ fontSize: '14px', color: '#333' }}>Phone Number</strong>
-                <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
-                  {order.delivery_phone}
-                </p>
+              <div className="delivery-detail-item">
+                <strong>Phone Number</strong>
+                <p>{order.delivery_phone}</p>
               </div>
 
               {order.branch && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong style={{ fontSize: '14px', color: '#333' }}>Fulfillment Center</strong>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
-                    {order.branch.name}
-                  </p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#888' }}>
-                    {order.branch.phone} • {order.branch.email}
-                  </p>
+                <div className="delivery-detail-item">
+                  <strong>Fulfillment Center</strong>
+                  <p>{order.branch.name}</p>
+                  <p className="small-text">{order.branch.phone} • {order.branch.email}</p>
                 </div>
               )}
 
               {order.rider && (
-                <div>
-                  <strong style={{ fontSize: '14px', color: '#333' }}>Delivery Agent</strong>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
-                    {order.rider.name}
-                  </p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#888' }}>
-                    {order.rider.phone}
-                  </p>
+                <div className="delivery-detail-item">
+                  <strong>Delivery Agent</strong>
+                  <p>{order.rider.name}</p>
+                  <p className="small-text">{order.rider.phone}</p>
                 </div>
               )}
             </div>
 
             {/* Order Timeline */}
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '4px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '35px' }}>Order Timeline</h3>
+            <div className="order-timeline-card">
+              <h3>Order Timeline</h3>
               
-              <div style={{ position: 'relative', paddingLeft: '20px' }}>
-                <div style={{ 
-                  position: 'absolute', 
-                  left: '8px', 
-                  top: '0', 
-                  bottom: '0', 
-                  width: '2px', 
-                  backgroundColor: '#eee' 
-                }}></div>
-                
-                <div style={{ position: 'relative', marginBottom: '50px' }}>
-                  <div style={{ 
-                    position: 'absolute', 
-                    left: '-12px', 
-                    // top:'5px',
-                    width: '16px', 
-                    height: '16px', 
-                    backgroundColor: '#4caf50', 
-                    borderRadius: '50%',
-                    border: '3px solid #fff',
-                    boxShadow: '0 0 0 2px #4caf50'
-                  }}></div>
-                  <div style={{marginLeft:'20px', marginTop:'-20px'}}>
-                    <strong style={{ fontSize: '14px', color: '#333' }}>Order Placed</strong>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#888' }}>
+              <div className="timeline">
+                {/* Order Placed */}
+                <div className="timeline-item">
+                  <div className="timeline-dot placed">✓</div>
+                  <div className="timeline-content placed">
+                    <span className="timeline-status-badge placed">✓ Completed</span>
+                    <strong>Order Placed</strong>
+                    <div className="timeline-date">
+                      <span className="timeline-icon">📅</span>
                       {formatDate(order.created_at)}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
+                {/* Order Confirmed or Cancelled */}
                 {order.status !== 'pending' && (
-                  <div style={{ position: 'relative', marginBottom: '50px' }}>
-                    <div style={{ 
-                      position: 'absolute', 
-                      left: '-12px', 
-                      width: '16px', 
-                      height: '16px', 
-                      backgroundColor: order.status === 'cancelled' ? '#f44336' : '#4caf50', 
-                      borderRadius: '50%',
-                      border: '3px solid #fff',
-                      boxShadow: `0 0 0 2px ${order.status === 'cancelled' ? '#f44336' : '#4caf50'}`
-                    }}></div>
-                    <div style={{marginLeft:'20px', marginTop:'-20px'}}>
-                      <strong style={{ fontSize: '14px', color: '#333' }}>
+                  <div className="timeline-item">
+                    <div className={`timeline-dot ${order.status === 'cancelled' ? 'cancelled' : 'confirmed'}`}>
+                      {order.status === 'cancelled' ? '✕' : '✓'}
+                    </div>
+                    <div className={`timeline-content ${order.status === 'cancelled' ? 'cancelled' : 'confirmed'}`}>
+                      <span className={`timeline-status-badge ${order.status === 'cancelled' ? 'cancelled' : 'confirmed'}`}>
+                        {order.status === 'cancelled' ? '✕ Cancelled' : '✓ Confirmed'}
+                      </span>
+                      <strong>
                         {order.status === 'cancelled' ? 'Order Cancelled' : 'Order Confirmed'}
                       </strong>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#888' }}>
+                      <div className="timeline-date">
+                        <span className="timeline-icon">📅</span>
                         {formatDate(order.updated_at)}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* Order Delivered */}
                 {order.delivered_at && (
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ 
-                      position: 'absolute', 
-                      left: '-12px', 
-                      width: '16px', 
-                      height: '16px', 
-                      backgroundColor: '#4caf50', 
-                      borderRadius: '50%',
-                      border: '3px solid #fff',
-                      boxShadow: '0 0 0 2px #4caf50'
-                    }}></div>
-                    <div style={{marginLeft:'20px', marginTop:'-20px'}}>
-                      <strong style={{ fontSize: '14px', color: '#333' }}>Order Delivered</strong>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#888' }}>
+                  <div className="timeline-item">
+                    <div className="timeline-dot delivered">✓</div>
+                    <div className="timeline-content delivered">
+                      <span className="timeline-status-badge delivered">✓ Delivered</span>
+                      <strong>Order Delivered</strong>
+                      <div className="timeline-date">
+                        <span className="timeline-icon">📅</span>
                         {formatDate(order.delivered_at)}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 )}

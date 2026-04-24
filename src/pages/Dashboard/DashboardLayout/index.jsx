@@ -35,7 +35,7 @@ const DashboardLayout = ({  children }) => {
         />
 
         <main className={`dashboard-main ${!sidebarOpen ? 'expanded' : ''}`}>
-          <div className="dashboard-content">
+          <div className="dashboard-content p-0 pt-3 m-0">
             {children}
           </div>
         </main>

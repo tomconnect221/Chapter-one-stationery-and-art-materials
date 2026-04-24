@@ -1,4 +1,8 @@
 /* Account Details Styles */
+.account-details-container {
+    padding-top: 160px
+}
+
 .account-details {
     background: white;
     border-radius: 12px;
@@ -227,9 +231,11 @@ input:checked+.toggle-slider:before {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .account-details {
-        padding: 20px;
+    .account-details-container {
+        padding-top: 50px
     }
+
+  
 
     .tab-navigation {
         flex-direction: column;
@@ -279,37 +285,38 @@ input:checked+.toggle-slider:before {
     color: #222;
     margin-bottom: 12px
 }
+
 /* Password Input Wrapper */
 .password-input-wrapper {
-  position: relative;
-  width: 100%;
+    position: relative;
+    width: 100%;
 }
 
 .password-toggle-icon {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #666;
-  transition: color 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
 }
 
 .password-toggle-icon:hover {
-  color: #333;
+    color: #333;
 }
 
 /* Adjust input padding to make space for the icon */
 .password-input-wrapper .form-control {
-  padding-right: 40px;
+    padding-right: 40px;
 }
 
 /* Ensure the invalid feedback is properly positioned */
-.password-input-wrapper + .invalid-feedback {
-  display: block;
+.password-input-wrapper+.invalid-feedback {
+    display: block;
 }

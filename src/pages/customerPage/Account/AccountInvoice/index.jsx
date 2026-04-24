@@ -243,8 +243,8 @@ const AccountInvoice = () => {
   };
 
   return (
-    <div className="col-lg-10">
-      <div className="invoice-container">
+    <div className="col-lg-10 invoice-containe-section">
+      <div className="invoice-containe w-100">
         {/* Header Section */}
         <div className="invoice-header">
           <div className="header-conten">

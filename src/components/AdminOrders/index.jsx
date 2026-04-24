@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import OrderDetails from './OrderDetails';
+
+
 import axios from 'axios';
 import '../AdminProducts/AdminProducts.css';
-import OrderDetails from './OrderDetails';
 import { useSelector } from 'react-redux';
 import './AdminOrderStyling.css';
 import { toast } from 'react-toastify';
@@ -11,16 +14,14 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [viewLoading, setViewLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(10);
   const base_url = import.meta.env.VITE_API_URL;
   const { token } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
 
-  
   const [riders, setRiders] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -32,6 +33,8 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterSKU, setFilterSKU] = useState('all');
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc'); // date_desc, date_asc, total_desc, total_asc
   const [products, setProducts] = useState([]);
   const [skus, setSkus] = useState([]);
@@ -85,24 +88,44 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
       const response = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
+  console.log('all orders ',response.data.data.data);
+  
       if (response.data.success) {
         const formattedOrders = response.data.data.data.map(order => ({
           id: order.id,
           order_number: order.order_number,
           customer: order.customer.name,
+          customerId: order.customer.id, // Include customer ID for better deduplication
           items: order.order_items.length,
           total: parseFloat(order.total_amount) * 100,
+          totalAmount: order.total_amount, // Keep original for deduplication
           branch: userBranch,
           rider: order.rider ? order.rider.name : 'Unassigned',
           riderId: order.rider_id,
           status: order.status,
           paymentStatus: order.payment_status,
           createdAt: order.created_at,
+          createdDate: order.created_at.split('T')[0], // Extract just the date for deduplication
           address: order.delivery_address,
           order_items: order.order_items // Include order items for filtering
         }));
-        setOrders(formattedOrders);
+
+        // Deduplicate orders: keep only unique orders based on customer, total_amount, and date
+        const uniqueOrdersMap = new Map();
+        formattedOrders.forEach(order => {
+          // Create a unique key combining customer ID (or name), total amount, and date
+          const key = `${order.customerId || order.customer}-${order.totalAmount}-${order.createdDate}`;
+          
+          // Only add if this key doesn't exist (keeps first occurrence)
+          if (!uniqueOrdersMap.has(key)) {
+            uniqueOrdersMap.set(key, order);
+          }
+        });
+        
+        const uniqueOrders = Array.from(uniqueOrdersMap.values());
+        console.log(`Total orders: ${formattedOrders.length}, Unique orders: ${uniqueOrders.length}, Duplicates removed: ${formattedOrders.length - uniqueOrders.length}`);
+        
+        setOrders(uniqueOrders);
       }
     } catch (err) {
       toast.error(err.message || 'Failed to fetch orders');
@@ -136,15 +159,9 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
     setShowAssignModal(true);
     fetchRiders();
   };
-  const handleViewDetails = async (order) => {
-    setViewLoading(true);
-    setSelectedOrder(order);
-    
-    // Simulate loading time for better UX
-    setTimeout(() => {
-      setViewLoading(false);
-      setShowDetailsModal(true);
-    }, 800);
+  const handleViewDetails = (order) => {
+    setShowOrderDetailsModal(true);
+    setSelectedOrderDetails(order);
   };
   const handleRiderAssignment = async (riderId) => {
     setStatusLoading(true);
@@ -351,12 +368,12 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
             <div className="stat-label">Pending ({orders.filter(o => o.status === 'pending').length})</div>
           </div>
         </div>
-        <div className="stat-card d-flex justify-content-between">
+        {/* <div className="stat-card d-flex justify-content-between">
           <div className="stat-icon">🚚</div>
           <div className="stat-info">
             <div className="stat-label">Shipped ({orders.filter(o => o.status === 'shipped').length})</div>
           </div>
-        </div>
+        </div> */}
         <div className="stat-card d-flex justify-content-between">
           <div className="stat-icon">✅</div>
           <div className="stat-info">
@@ -389,12 +406,12 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
             <option value="cancelled">Cancelled</option>
           </select>
 
-          {userType === 'admin' && (
+          {/* {userType === 'admin' && (
             <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #dee2e6', borderRadius: '4px' }}>
               <option value="all">All Branches</option>
               {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
             </select>
-          )}
+          )} */}
 
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #dee2e6', borderRadius: '4px' }}>
             <option value="date_desc">Newest First</option>
@@ -551,11 +568,11 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
                     <button className="btn-icon" onClick={() => handleViewDetails(order)} title="View" style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}>
                       👁️
                     </button>
-                    {canEdit && order.rider === 'Unassigned' && (
+                    {canEdit && order.status !== 'delivered' && order.status !== 'cancelled' && (
                       <button className="btn-icon" onClick={() => handleAssignRider(order)} title="Assign Rider" style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}>
                         🚚
                       </button>
-                    )}
+                     )} 
                   </div>
                 </td>
               </tr>
@@ -638,35 +655,6 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
         </div>
       )}
 
-      {/* View Order Loading Popup */}
-      {viewLoading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            padding: '30px',
-            borderRadius: '8px',
-            textAlign: 'center',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div className="spinner-border" role="status" style={{ marginBottom: '15px' }}>
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <p style={{ margin: 0, fontSize: '16px', color: '#333' }}>Loading order details...</p>
-          </div>
-        </div>
-      )}
-
       {showAssignModal && (
         <AssignRiderModal
           order={selectedOrder}
@@ -675,13 +663,13 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
           onClose={() => setShowAssignModal(false)}
         />
       )}
-
-      {showDetailsModal && selectedOrder && (
-        <OrderDetails
-          orderId={selectedOrder.id}
-          userType={userType}
-          token={token}
-          onClose={() => setShowDetailsModal(false)}
+      
+      {showOrderDetailsModal && selectedOrderDetails && (
+        <OrderDetails 
+          orderId={selectedOrderDetails.id} 
+          userType={userType} 
+          token={token} 
+          onClose={() => setShowOrderDetailsModal(false)} 
         />
       )}
     </div>

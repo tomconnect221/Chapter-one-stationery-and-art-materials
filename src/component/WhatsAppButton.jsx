@@ -4,7 +4,8 @@ import './WhatsAppButton.css';
 
 const WhatsAppButton = () => {
   const { settings } = useSettings();
-  const phoneNumber = settings?.whatsappNumber || "1234567890"; // Replace with actual field if different
+  console.log(settings);
+  const phoneNumber = settings?.whatsapp || "1234567890"; // Replace with actual field if different
 
   return (
     <a

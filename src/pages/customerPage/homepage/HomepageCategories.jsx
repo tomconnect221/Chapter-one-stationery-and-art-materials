@@ -336,6 +336,7 @@ const HomepageCategorySection = () => {
                 
                 .category-image-wrapper {
                     position: relative;
+                    width: 180px;
                     height: 120px;
                     overflow: hidden;
                 }
@@ -350,8 +351,8 @@ const HomepageCategorySection = () => {
                 }
                 
                 .category-image {
-                    width: 100%;
-                    height: 100%;
+                    width: 180px;
+                    height: 120px;
                     object-fit: cover;
                     position: relative;
                     z-index: 2;

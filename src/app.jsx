@@ -11,6 +11,8 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import AdminLogin from "./pages/Auth/AdminLogin";
 import AdminForgotPassword from "./pages/Auth/AdminForgotPassword";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ResetPassword from "./pages/Auth/ResetPassword";
 import AuthModal from "./component/Auth/AuthModal";
 import { useAuth } from "./component/Auth/AuthContext";
 import NotFound from "./pages/NotFound";
@@ -37,16 +39,17 @@ import AboutUs from './pages/customerPage/About_us';
 import FAQ from './pages/customerPage/store_faq';
 import PaymentConfirmation from './pages/customerPage/Checkout/PaymentConfirmation';
 import PopupAd from './component/customer-components/ads/popup';
+import PromoProducts from './pages/customerPage/PromoProducts/PromoProducts';
 // import PopupAd from './components/PopupAd'; // Import the PopupAd component
 
 // Protected Route Component for Customer Routes
 const CustomerProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return children;
 };
 
@@ -66,9 +69,9 @@ const LayoutWrapper = ({ children }) => {
     // - Dashboard routes (/admin/*, /dispatch/*)
     // - Account routes (/account/*)
     // - Auth routes that are not customer-facing? (optional - you can adjust)
-    return !path.startsWith('/admin') && 
-           !path.startsWith('/dispatch') && 
-           !path.startsWith('/account');
+    return !path.startsWith('/admin') &&
+      !path.startsWith('/dispatch') &&
+      !path.startsWith('/account');
   };
 
   return (
@@ -98,34 +101,37 @@ export function App() {
           <Route path="/shop" element={<Shop />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
-          
+          <Route path="/promo-products/:id" element={<PromoProducts />} />
+
           {/* Protected Checkout Routes - Only for authenticated users */}
-          <Route 
-            path="/checkout" 
+          <Route
+            path="/checkout"
             element={
               <CustomerProtectedRoute>
                 <Checkout />
               </CustomerProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/payment-confirmation" 
+          <Route
+            path="/payment-confirmation"
             element={
               <CustomerProtectedRoute>
                 <PaymentConfirmation />
               </CustomerProtectedRoute>
-            } 
+            }
           />
-          
+
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/branches" element={<Branches />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />
-          
+
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/password/reset" element={<ResetPassword />} />
 
           {/* Account Routes - WITH Navbar but NO PopupAd */}
           <Route path="/account" element={<CustomerAccount />}>

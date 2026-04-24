@@ -9,6 +9,7 @@ import 'owl.carousel/dist/assets/owl.theme.default.css';
 import HomeSLider from './Homeslider';
 import HomepageCategorySection from './HomepageCategories';
 import AdsTypeBlock from '../../../component/customer-components/ads';
+import InContentAds from './InContentAds';
 import HomeBestSeller from './bestSeller';
 import ViewedItemProduct from './viewedItemProduct';
 
@@ -16,9 +17,10 @@ const Homepage = () => {
     return (
         <>
             <HomeSLider />
+            <InContentAds />
             <HomepageCategorySection />
             <HomeBestSeller />
-            <AdsTypeBlock />
+            {/* <AdsTypeBlock /> */}
             <ViewedItemProduct />
             <Footer />
         </>

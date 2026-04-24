@@ -51,29 +51,33 @@ const MobileBottomNav = ({ onOpenAuth }) => {
         }
     ];
 
+    
+
     return (
         <div className="mobile-bottom-nav">
             <div className="nav-container">
                 {navItems.map(item => {
                     const NavComponent = item.onClick ? 'button' : Link;
-                    const navProps = item.onClick 
+                    const navProps = item.onClick
                         ? { onClick: item.onClick }
                         : { to: item.path };
 
                     return (
+                        
                         <NavComponent
                             key={item.id}
                             className={`nav-item ${item.active ? 'active' : ''}`}
                             {...navProps}
                         >
-                            <div className="nav-icon">
-                                <i className={item.icon}></i>
+                            <div className="mobile-nav-icon w-100">
+                                <i className={`${item.icon} text-center`}></i>
                                 {item.badge > 0 && (
                                     <span className="nav-badge">{item.badge > 99 ? '99+' : item.badge}</span>
                                 )}
                             </div>
                             <span className="nav-label">{item.label}</span>
                         </NavComponent>
+                     
                     );
                 })}
             </div>

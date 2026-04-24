@@ -1,4 +1,5 @@
 /* Loading and Error States */
+
 .loading-container, .error-container {
   display: flex;
   flex-direction: column;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import './authmodal.css';
@@ -8,7 +9,7 @@ import './authmodal.css';
  * Handles user login, registration, and password reset
  */
 const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
-  const { login, register, loading, error, fieldErrors, success, clearError, clearSuccess } = useAuth();
+  const { login, register, forgotPassword, loading, error, fieldErrors, success, clearError, clearSuccess } = useAuth();
 
   // Form state management
   const [view, setView] = useState(initialView);
@@ -20,6 +21,10 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
     lastName: '',
     password_confirmation: ''
   });
+
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
   // Reset modal when opened or initialView changes
   useEffect(() => {
@@ -36,6 +41,9 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
         lastName: '',
         password_confirmation: ''
       });
+      // Reset password visibility
+      setShowPassword(false);
+      setShowPasswordConfirmation(false);
     }
   }, [show, initialView]); // Removed clearError, clearSuccess from deps to prevent infinite loop
 
@@ -84,14 +92,14 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
       } else if (view === 'signup') {
         await register(formData);
       } else {
-        // Forgot password functionality (placeholder)
-        console.warn('Forgot password functionality not implemented');
+        // Forgot password functionality
+        await forgotPassword(formData.email);
       }
     } catch (error) {
       // Error handling is managed by AuthContext
       console.error('Authentication error:', error);
     }
-  }, [view, formData, login, register]);
+  }, [view, formData, login, register, forgotPassword]);
 
   /**
    * Handle modal close
@@ -343,7 +351,7 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
                 </div>
 
                 <div className="row gx-3">
-                  <div className="col-6 mb-3">
+                  <div className="col-xl-6 col-lg-6  col-md-6 col-sm-12 mb-3">
                     <label
                       htmlFor="password"
                       className="form-label"
@@ -356,23 +364,44 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
                     >
                       Password
                     </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="Create password"
-                      required
-                      className="form-control"
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: `1px solid ${fieldErrors.password ? theme.error : '#ddd'}`,
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="Create password"
+                        required
+                        className="form-control"
+                        style={{
+                          width: '100%',
+                          padding: '10px 40px 10px 12px',
+                          border: `1px solid ${fieldErrors.password ? theme.error : '#ddd'}`,
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#666',
+                          fontSize: '16px',
+                          padding: '4px 8px'
+                        }}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      </button>
+                    </div>
                     {fieldErrors.password && (
                       <div
                         className="field-error"
@@ -387,7 +416,7 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
                     )}
                   </div>
 
-                  <div className="col-6 mb-3">
+                  <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                     <label
                       htmlFor="password_confirmation"
                       className="form-label"
@@ -400,23 +429,44 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
                     >
                       Confirm Password
                     </label>
-                    <input
-                      id="password_confirmation"
-                      name="password_confirmation"
-                      type="password"
-                      value={formData.password_confirmation}
-                      onChange={handleInputChange}
-                      placeholder="Confirm password"
-                      required
-                      className="form-control"
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: `1px solid ${fieldErrors.password_confirmation ? theme.error : '#ddd'}`,
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        type={showPasswordConfirmation ? 'text' : 'password'}
+                        value={formData.password_confirmation}
+                        onChange={handleInputChange}
+                        placeholder="Confirm password"
+                        required
+                        className="form-control"
+                        style={{
+                          width: '100%',
+                          padding: '10px 40px 10px 12px',
+                          border: `1px solid ${fieldErrors.password_confirmation ? theme.error : '#ddd'}`,
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#666',
+                          fontSize: '16px',
+                          padding: '4px 8px'
+                        }}
+                        aria-label={showPasswordConfirmation ? 'Hide password' : 'Show password'}
+                      >
+                        <i className={`fas ${showPasswordConfirmation ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      </button>
+                    </div>
                     {fieldErrors.password_confirmation && (
                       <div
                         className="field-error"
@@ -494,23 +544,44 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
                   >
                     Password
                   </label>
-                  <input
-                    id="login_password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter your password"
-                    required
-                    className="form-control"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: `1px solid ${fieldErrors.password ? theme.error : '#ddd'}`,
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="login_password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Enter your password"
+                      required
+                      className="form-control"
+                      style={{
+                        width: '100%',
+                        padding: '10px 40px 10px 12px',
+                        border: `1px solid ${fieldErrors.password ? theme.error : '#ddd'}`,
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#666',
+                        fontSize: '16px',
+                        padding: '4px 8px'
+                      }}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
                   {fieldErrors.password && (
                     <div
                       className="field-error"
@@ -605,18 +676,36 @@ const AuthModal = ({ show, onClose, initialView = 'signin' }) => {
               </button>
 
               {view !== 'signup' && (
-                <button
-                  type="button"
-                  className="btn btn-link w-100 mt-3"
-                  onClick={() => switchView(view === 'forgot' ? 'signin' : 'forgot')}
-                  style={{
-                    color: theme.primary,
-                    textDecoration: 'none',
-                    fontSize: '14px'
-                  }}
-                >
-                  {view === 'forgot' ? 'Back to Sign In' : 'Forgot your password?'}
-                </button>
+                view === 'forgot' ? (
+                  <button
+                    type="button"
+                    className="btn btn-link w-100 mt-3"
+                    onClick={() => switchView('signin')}
+                    style={{
+                      color: theme.primary,
+                      textDecoration: 'none',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Back to Sign In
+                  </button>
+                ) : (
+                  <Link
+                    to="/forgot-password"
+                    className="btn btn-link w-100 mt-3"
+                    onClick={() => {
+                      onClose();
+                      clearError();
+                    }}
+                    style={{
+                      color: theme.primary,
+                      textDecoration: 'none',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Forgot your password?
+                  </Link>
+                )
               )}
             </div>
           </form>

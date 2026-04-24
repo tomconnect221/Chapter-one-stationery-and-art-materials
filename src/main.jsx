@@ -1,8 +1,8 @@
 import React from "react";
 import { App } from "./app.jsx";
-import { render } from "preact";
+import { render } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { createRoot } from "preact/compat/client";
+import { createRoot } from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./style.css";

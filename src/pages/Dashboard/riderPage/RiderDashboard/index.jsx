@@ -14,18 +14,18 @@ const DispatchDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [locationStatus, setLocationStatus] = useState('inactive');
   const locationTimerRef = useRef(null);
-  
+
   // Fetch rider's assigned orders
-  const { 
-    orders, 
-    loading, 
-    error, 
-    stats, 
+  const {
+    orders,
+    loading,
+    error,
+    stats,
     pagination,
     updateOrderStatus,
     getOrderStats,
     handlePageChange
-  } = useRiderOrders({ 
+  } = useRiderOrders({
     status: filterStatus,
     page: currentPage,
     limit: 10
@@ -83,7 +83,7 @@ const DispatchDashboard = () => {
     };
     return statusConfig[locationStatus] || statusConfig.inactive;
   };
-  
+
   const dispatchStats = [
     {
       title: 'Total Deliveries',
@@ -123,100 +123,55 @@ const DispatchDashboard = () => {
     // <DashboardLayout userType="dispatch">
     <>
       {/* Enhanced Header - My Deliveries Section */}
-      <div className="deliveries-header" style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '24px',
-        borderRadius: '0 0 24px 24px',
-        marginBottom: '24px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div>
-            <h1 style={{ color: 'white', margin: 0, fontSize: '28px', fontWeight: '700' }}>My Deliveries</h1>
-            <p style={{ color: 'rgba(255,255,255,0.8)', margin: '4px 0 0 0', fontSize: '14px' }}>Manage and track your delivery assignments</p>
+      <div className="deliveries-header">
+        <div className="deliveries-header-content">
+          <div className="deliveries-header-title">
+            <h1>My Deliveries</h1>
+            <p>Manage and track your delivery assignments</p>
           </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(255,255,255,0.15)',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <span style={{ marginRight: '8px', fontSize: '14px' }}>{getLocationStatusIcon().icon}</span>
-            <span style={{ color: 'white', fontSize: '12px', fontWeight: '500' }}>{getLocationStatusIcon().text}</span>
+          <div className="location-status-badge  d-flex">
+            <span className="status-icon pr-3 m-0">{getLocationStatusIcon().icon}</span>
+            <span className="status-text">{getLocationStatusIcon().text}</span>
           </div>
         </div>
 
-        <div className="header-stats" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-          gap: '16px'
-        }}>
-          <div className="stat-card" style={{
-            background: 'rgba(255,255,255,0.15)',
-            padding: '16px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}>
-            <div style={{ color: 'white', fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>{localStats.total}</div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>Total</div>
+        <div className="header-stats">
+          <div className="header-stat-card">
+            <div className="header-stat-value">{localStats.total}</div>
+            <div className="header-stat-label">Total</div>
           </div>
-          <div className="stat-card" style={{
-            background: 'rgba(255,255,255,0.15)',
-            padding: '16px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}>
-            <div style={{ color: 'white', fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>{localStats.completed}</div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>Completed</div>
+          <div className="header-stat-card">
+            <div className="header-stat-value">{localStats.inProgress}</div>
+            <div className="header-stat-label">In Progress</div>
           </div>
-          <div className="stat-card" style={{
-            background: 'rgba(255,255,255,0.15)',
-            padding: '16px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}>
-            <div style={{ color: 'white', fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>{localStats.inProgress}</div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>In Progress</div>
+          <div className="header-stat-card">
+            <div className="header-stat-value">{localStats.delivered}</div>
+            <div className="header-stat-label">Delivered</div>
           </div>
-          <div className="stat-card earnings" style={{
-            background: 'rgba(255,255,255,0.2)',
-            padding: '16px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.3)'
-          }}>
-            <div style={{ color: 'white', fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>₦{stats.totalEarnings ? parseFloat(stats.totalEarnings).toLocaleString() : '0'}</div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>Today's Earnings</div>
+          <div className="header-stat-card earnings">
+            <div className="header-stat-value">₦{localStats.todayEarnings ? localStats.todayEarnings.toLocaleString() : '0'}</div>
+            <div className="header-stat-label">Today's Earnings</div>
           </div>
         </div>
       </div>
 
       {/* Page Header */}
-      <div className="dashboard-page-header">
+      <div className="dashboard-page-header mt-4 p-0">
         <div className="page-title-area">
           <h1>Dispatch Dashboard</h1>
           <p className="page-subtitle">Manage your deliveries and earnings</p>
         </div>
 
-      
+
       </div>
       {/* Dispatch Stats */}
- 
+
       {/* Today's Deliveries */}
-      <div className="deliveries-section">
+      <div className="deliveries-section p-3 m-4">
         <div className="section-header">
           <h3>Assigned Deliveries</h3>
           <div className="delivery-filters">
-            <button 
+            <button
               className={`filter-btn ${!filterStatus ? 'active' : ''}`}
               onClick={() => {
                 setFilterStatus(null);
@@ -225,7 +180,7 @@ const DispatchDashboard = () => {
             >
               All
             </button>
-            <button 
+            <button
               className={`filter-btn ${filterStatus === 'pending' ? 'active' : ''}`}
               onClick={() => {
                 setFilterStatus('pending');
@@ -234,23 +189,41 @@ const DispatchDashboard = () => {
             >
               Pending
             </button>
-            <button 
-              className={`filter-btn ${filterStatus === 'in_progress' ? 'active' : ''}`}
+            <button
+              className={`filter-btn ${filterStatus === 'confirmed' ? 'active' : ''}`}
               onClick={() => {
-                setFilterStatus('in_progress');
+                setFilterStatus('confirmed');
                 setCurrentPage(1);
               }}
             >
-              In Progress
+              Confirmed
             </button>
-            <button 
-              className={`filter-btn ${filterStatus === 'completed' ? 'active' : ''}`}
+            <button
+              className={`filter-btn ${filterStatus === 'ready_for_delivery' ? 'active' : ''}`}
               onClick={() => {
-                setFilterStatus('completed');
+                setFilterStatus('ready_for_delivery');
                 setCurrentPage(1);
               }}
             >
-              Completed
+              Ready
+            </button>
+            <button
+              className={`filter-btn ${filterStatus === 'out_for_delivery' ? 'active' : ''}`}
+              onClick={() => {
+                setFilterStatus('out_for_delivery');
+                setCurrentPage(1);
+              }}
+            >
+              Out for Delivery
+            </button>
+            <button
+              className={`filter-btn ${filterStatus === 'delivered' ? 'active' : ''}`}
+              onClick={() => {
+                setFilterStatus('delivered');
+                setCurrentPage(1);
+              }}
+            >
+              Delivered
             </button>
           </div>
         </div>
@@ -273,13 +246,12 @@ const DispatchDashboard = () => {
         ) : (
           <div className="deliveries-lis row">
             {orders.map((delivery, index) => (
-              <div key={delivery.id || index} className="col-md-4">
-                <div 
-                  className="delivery-card m-0" 
-                  style={{ width: '100%', display: 'block', cursor: 'pointer' }}
+              <div key={delivery.id || index} className="col-md-3">
+                <div
+                  className="delivery-card m-0 delivery-card-grid m-1"
                   onClick={() => navigate(`/dispatch/deliveries/${delivery.id}`)}
                 >
-                  <div className="delivery-info w-100" style={{ width: '100%', display: 'block' }}>
+                  <div className="delivery-info w-100 delivery-info-full">
                     <div className="delivery-id">#{delivery.id || delivery.order_number}</div>
                     <div className="customer-name">{delivery.customer_name || delivery.customer?.name || 'Unknown'}</div>
                     <div className="delivery-address">
@@ -290,9 +262,9 @@ const DispatchDashboard = () => {
                   <div className="delivery-meta">
                     <div className='d-flex w-100 justify-content-between'>
                       <div className="delivery-time">
-                        {new Date(delivery.created_at).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                        {new Date(delivery.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
                       </div>
                       <div className="delivery-amount">
@@ -304,7 +276,7 @@ const DispatchDashboard = () => {
                   <div className="delivery-actions d-flex justify-content-between mt-3 align-items-center">
                     <div>
                       {(delivery.status === 'pending' || delivery.status === 'assigned') && (
-                        <button 
+                        <button
                           className="btn btn-primary btn-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -315,7 +287,7 @@ const DispatchDashboard = () => {
                         </button>
                       )}
                       {delivery.status === 'in_progress' && (
-                        <button 
+                        <button
                           className="btn btn-success btn-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -326,7 +298,7 @@ const DispatchDashboard = () => {
                         </button>
                       )}
                       {delivery.status === 'completed' && (
-                        <button 
+                        <button
                           className="btn btn-outline btn-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -336,7 +308,7 @@ const DispatchDashboard = () => {
                           View Details
                         </button>
                       )}
-                      <button 
+                      <button
                         className="btn btn-primary btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -361,7 +333,7 @@ const DispatchDashboard = () => {
         {/* Pagination */}
         {!loading && orders.length > 0 && pagination.lastPage > 1 && (
           <div className="d-flex justify-content-center align-items-center mt-4 gap-2">
-            <button 
+            <button
               className="btn btn-outline btn-sm"
               onClick={() => handlePageChange(pagination.currentPage - 1)}
               disabled={pagination.currentPage === 1}
@@ -371,7 +343,7 @@ const DispatchDashboard = () => {
             <span className="mx-2">
               Page {pagination.currentPage} of {pagination.lastPage}
             </span>
-            <button 
+            <button
               className="btn btn-outline btn-sm"
               onClick={() => handlePageChange(pagination.currentPage + 1)}
               disabled={pagination.currentPage === pagination.lastPage}

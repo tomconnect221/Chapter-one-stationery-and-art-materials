@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../../component/Auth/AuthContext';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { searchAddresses, getPlaceDetails, extractAddressParts } from '../../../../utils/googlePlacesApi';
 import './AccountAddress.css';
+
 const AccountAddress = () => {
   const { user } = useAuth();
   const { token } = useSelector((state) => state.auth);
@@ -12,6 +14,11 @@ const AccountAddress = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const addressInputRef = useRef(null);
+  const baseUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchAddresses();
@@ -20,10 +27,10 @@ const AccountAddress = () => {
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/customer/profile`, {
+      const response = await axios.get(`${baseUrl}/api/customer/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.data.success && response.data.data.shipping_addresses) {
         const addressData = response.data.data.shipping_addresses.map((addr, index) => ({
           id: Date.now() + index,
@@ -31,6 +38,8 @@ const AccountAddress = () => {
           city: addr.city,
           state: addr.state,
           postal_code: addr.postal_code,
+          latitude: addr.latitude || null,
+          longitude: addr.longitude || null,
           is_default: addr.is_default
         }));
         setAddresses(addressData);
@@ -52,22 +61,23 @@ const AccountAddress = () => {
         address: addr.address,
         city: addr.city,
         state: addr.state,
-        postal_code: addr.postal_code,
+        latitude: addr.latitude || null,
+        longitude: addr.longitude || null,
         is_default: addr.is_default
       }))
     };
-    
+
     const response = await axios.put(
-      `${import.meta.env.VITE_API_URL}/api/customer/update-shipping-addresses`,
+      `${baseUrl}/api/customer/update-shipping-addresses`,
       addressPayload,
       {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       }
     );
-    
+
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to update addresses');
     }
@@ -77,7 +87,8 @@ const AccountAddress = () => {
     address: '',
     city: '',
     state: '',
-    postal_code: '',
+    latitude: '',
+    longitude: '',
     is_default: false
   });
 
@@ -89,13 +100,106 @@ const AccountAddress = () => {
     'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
   ];
 
-
-
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    if (field === 'address' && value.length >= 3) {
+      searchAddress(value);
+    } else if (field === 'address' && value.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const searchAddress = async (query) => {
+    try {
+      const suggestions = await searchAddresses(query);
+      
+      if (suggestions && suggestions.length > 0) {
+        setAddressSuggestions(suggestions);
+        setShowSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+      toast.error('Failed to search addresses');
+    }
+  };
+
+  const selectAddressSuggestion = async (suggestion) => {
+    try {
+      setGeocoding(true);
+      
+      // Fetch detailed information including coordinates
+      const placeDetails = await getPlaceDetails(suggestion.id);
+      
+      if (placeDetails) {
+        const addressParts = extractAddressParts(placeDetails);
+        
+        setFormData(prev => ({
+          ...prev,
+          address: placeDetails.formattedAddress || suggestion.formattedAddress,
+          latitude: placeDetails.latitude || '',
+          longitude: placeDetails.longitude || '',
+          city: addressParts.city || prev.city || '',
+          state: addressParts.state || prev.state || '',
+          postal_code: addressParts.postal_code || prev.postal_code || ''
+        }));
+        
+        toast.success('Address details loaded!');
+      } else {
+        toast.error('Failed to load address details');
+      }
+    } catch (error) {
+      console.error('Error selecting address:', error);
+      toast.error('Failed to load address details');
+    } finally {
+      setGeocoding(false);
+      setShowSuggestions(false);
+      setAddressSuggestions([]);
+    }
+  };
+
+
+  const geocodeAddress = async () => {
+    if (!formData.address) {
+      toast.error('Please enter an address first');
+      return;
+    }
+
+    setGeocoding(true);
+    try {
+      // Search for the address to get the place ID
+      const searchResults = await searchAddresses(formData.address);
+      
+      if (searchResults && searchResults.length > 0) {
+        // Get coordinates from the first result
+        const placeDetails = await getPlaceDetails(searchResults[0].id);
+        
+        if (placeDetails && placeDetails.latitude && placeDetails.longitude) {
+          setFormData(prev => ({
+            ...prev,
+            latitude: placeDetails.latitude,
+            longitude: placeDetails.longitude
+          }));
+          toast.success('Coordinates obtained from address!');
+        } else {
+          toast.warning('Could not find coordinates for this address');
+        }
+      } else {
+        toast.warning('Could not find this address');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      toast.error('Failed to get coordinates');
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const resetForm = () => {
@@ -103,10 +207,13 @@ const AccountAddress = () => {
       address: '',
       city: '',
       state: '',
-      postal_code: '',
+      latitude: '',
+      longitude: '',
       is_default: false
     });
     setEditingAddress(null);
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const openAddModal = () => {
@@ -126,7 +233,7 @@ const AccountAddress = () => {
   };
 
   const handleSaveAddress = async () => {
-    if (!formData.address || !formData.city || !formData.state || !formData.postal_code) {
+    if (!formData.address || !formData.city || !formData.state) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -134,16 +241,14 @@ const AccountAddress = () => {
     setSaving(true);
     try {
       let updatedAddresses;
-      
+
       if (editingAddress) {
-        // Update existing address
         updatedAddresses = addresses.map(addr =>
           addr.id === editingAddress
             ? { ...formData, id: editingAddress }
             : formData.is_default ? { ...addr, is_default: false } : addr
         );
       } else {
-        // Add new address
         const newAddress = { ...formData, id: Date.now() };
         updatedAddresses = [
           ...addresses.map(addr => formData.is_default ? { ...addr, is_default: false } : addr),
@@ -151,10 +256,7 @@ const AccountAddress = () => {
         ];
       }
 
-      // Sync to server first
       await syncAddressesToServer(updatedAddresses);
-      
-      // Update local state only after successful sync
       setAddresses(updatedAddresses);
       toast.success(editingAddress ? 'Address updated successfully' : 'Address added successfully');
       closeModal();
@@ -201,325 +303,173 @@ const AccountAddress = () => {
     }
   };
 
-
-
   return (
     <>
-      <style>
-        {`
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(30px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-          
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-      <div className="col-lg-10">
-      <div className="address-container">
-        <div className="address-header">
-          <h1 className="address-title">My Addresses</h1>
-          <p className="address-subtitle">Manage your delivery addresses</p>
-        </div>
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div className="col-lg-10 address-container-section">
+        <div className="address-container">
+          <div className="address-header">
+            <h1 className="address-title">My Addresses</h1>
+            <p className="address-subtitle">Manage your delivery addresses</p>
+          </div>
 
-        {/* Add Address Button */}
-        <div className="add-address-section">
-          <button
-            className="add-address-btn"
-            onClick={openAddModal}
-          >
-            <span className="btn-icon">+</span>
-            Add New Address
-          </button>
-        </div>
+          <div className="add-address-section ">
+            <button className="add-address-btn p-2 " onClick={openAddModal}>
+              <span className="btn-icon">+</span>
+              Add New Address
+            </button>
+          </div>
 
-        {/* Addresses List */}
-        <div className="addresses-list">
-          {addresses.length === 0 ? (
-            <div className="empty-addresses">
-              <div className="empty-icon">🏠</div>
-              <h3>No addresses saved</h3>
-              <p>Add your first delivery address to get started</p>
-              <button className="btn btn-primary" onClick={openAddModal}>
-                Add Your First Address
-              </button>
-            </div>
-          ) : (
-            <div className="addresses-grid">
-              {addresses.map(address => (
-                <div key={address.id} className="address-card">
-                  {address.is_default && (
-                    <div className="default-badge">Default</div>
-                  )}
+          <div className="addresses-list">
+            {addresses.length === 0 ? (
+              <div className="empty-addresses">
+                <div className="empty-icon">🏠</div>
+                <h3>No addresses saved</h3>
+                <p>Add your first delivery address to get started</p>
+                <button className="btn btn-primary" onClick={openAddModal}>
+                  Add Your First Address
+                </button>
+              </div>
+            ) : (
+              <div className="addresses-gri row ">
+                {addresses.map(address => (
+                  <div className="col">
+                    <div key={address.id} className="address-card ">
+                      {address.is_default && <div className="default-badge">Default</div>}
 
-                  <div className="address-header">
-                    <div className="address-type">
-                      <span className="type-icon">📍</span>
-                      <span className="address-name">Address {address.id}</span>
+                      <div className="address-card-header">
+                        <div className="address-type">
+                          <span className="type-icon">📍</span>
+                          <span className="address-name">Address {address.id}</span>
+                        </div>
+                        <div className="address-actions">
+                          <button className="action-btn edit" onClick={() => openEditModal(address)} title="Edit address" disabled={saving}>✏️</button>
+                          {!address.is_default && (
+                            <button className="action-btn delete" onClick={() => handleDeleteAddress(address.id)} title="Delete address" disabled={saving}>🗑️</button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="address-details">
+                        <div className="location-info">
+                          <p className="street">{address.address}</p>
+                          <p className="city-state">{address.city}, {address.state}</p>
+                          {address.latitude && address.longitude && (
+                            <p className="coordinates">
+                              <span className="coord-icon">🌐</span>
+                              {parseFloat(address.latitude).toFixed(6)}, {parseFloat(address.longitude).toFixed(6)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="address-foote row">
+                        {!address.is_default && (
+                          <button className="set-default-btn col-lg-6 col-sm-12" onClick={() => handleSetDefault(address.id)} disabled={saving}>
+                            {saving ? 'Updating...' : 'Set as Default'}
+                          </button>
+                        )}
+                        <button className="deliver-here-btn col-lg-6 col-sm-12">Deliver to this Address</button>
+                      </div>
                     </div>
-                    <div className="address-actions">
-                      <button
-                        className="action-btn edit"
-                        onClick={() => openEditModal(address)}
-                        title="Edit address"
-                        disabled={saving}
-                      >
-                        ✏️
-                      </button>
-                      {!address.is_default && (
-                        <button
-                          className="action-btn delete"
-                          onClick={() => handleDeleteAddress(address.id)}
-                          title="Delete address"
-                          disabled={saving}
-                        >
-                          🗑️
-                        </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="delivery-tips">
+            <h4>Delivery Tips</h4>
+            <div className="tips-grid">
+              <div className="tip-item">
+                <span className="tip-icon">📱</span>
+                <div className="tip-content">
+                  <strong>Keep phone handy</strong>
+                  <p>Ensure your phone is active for delivery updates</p>
+                </div>
+              </div>
+              <div className="tip-item">
+                <span className="tip-icon">🏠</span>
+                <div className="tip-content">
+                  <strong>Clear address details</strong>
+                  <p>Include landmarks and clear directions</p>
+                </div>
+              </div>
+              <div className="tip-item">
+                <span className="tip-icon">⏰</span>
+                <div className="tip-content">
+                  <strong>Delivery hours</strong>
+                  <p>Most deliveries occur between 8AM - 8PM</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {showModal && (
+            <div className="modal-overlay" style={{zIndex:'9999'}}>
+              <div className="modal-content">
+                <div className="modal-header">
+                  <div>
+                    <h2 style={{color:'white'}}>{editingAddress ? '✏️ Edit Address' : '📍 Add New Address'}</h2>
+                    <p style={{color:'white'}}>{editingAddress ? 'Update your delivery address' : 'Add a new delivery address'}</p>
+                  </div>
+                  <button className="modal-close-btn" onClick={closeModal}>×</button>
+                </div>
+
+                <div className="modal-body">
+
+                  <div className="form-group address-input-group">
+                    <label>📍 Street Address <span className="required">*</span></label>
+                    <div className="input-wrapper">
+                      <textarea
+                        ref={addressInputRef}
+                        placeholder="Enter your complete address (or search for it)"
+                        rows="3"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        onFocus={() => formData.address.length >= 3 && setShowSuggestions(true)}
+                      />
+                      {showSuggestions && addressSuggestions.length > 0 && (
+                        <div className="address-suggestions">
+                          {addressSuggestions.map((suggestion, index) => (
+                            <div
+                              key={suggestion.id}
+                              className="suggestion-item"
+                              onClick={() => selectAddressSuggestion(suggestion)}
+                              style={{ cursor: geocoding ? 'wait' : 'pointer', opacity: geocoding ? 0.6 : 1 }}
+                            >
+                              <div style={{ fontWeight: 500 }}>{suggestion.displayName}</div>
+                              <div style={{ fontSize: '0.85em', color: '#666' }}>{suggestion.formattedAddress}</div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="address-details">
-                    <div className="location-info">
-                      <p className="street">{address.address}</p>
-                      <p className="city-state">{address.city}, {address.state}</p>
-                      <p className="postal-code">Postal Code: {address.postal_code}</p>
-                    </div>
-                  </div>
-
-                  <div className="address-footer">
-                    {!address.is_default && (
-                      <button
-                        className="set-default-btn"
-                        onClick={() => handleSetDefault(address.id)}
-                        disabled={saving}
-                      >
-                        {saving ? 'Updating...' : 'Set as Default'}
-                      </button>
-                    )}
-                    <button className="deliver-here-btn">
-                      Deliver to this Address
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Delivery Tips */}
-        <div className="delivery-tips">
-          <h4>Delivery Tips</h4>
-          <div className="tips-grid">
-            <div className="tip-item">
-              <span className="tip-icon">📱</span>
-              <div className="tip-content">
-                <strong>Keep phone handy</strong>
-                <p>Ensure your phone is active for delivery updates</p>
-              </div>
-            </div>
-            <div className="tip-item">
-              <span className="tip-icon">🏠</span>
-              <div className="tip-content">
-                <strong>Clear address details</strong>
-                <p>Include landmarks and clear directions</p>
-              </div>
-            </div>
-            <div className="tip-item">
-              <span className="tip-icon">⏰</span>
-              <div className="tip-content">
-                <strong>Delivery hours</strong>
-                <p>Most deliveries occur between 8AM - 8PM</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Address Modal */}
-        {showModal && (
-          <div className="modal-overlay" style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)'
-          }}>
-            <div className="modal-content" style={{
-              backgroundColor: '#fff',
-              borderRadius: '16px',
-              width: '90%',
-              maxWidth: '600px',
-              maxHeight: '90vh',
-              overflow: 'hidden',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
-              animation: 'slideUp 0.3s ease-out'
-            }}>
-              {/* Modal Header */}
-              <div style={{
-                padding: '24px 32px',
-                borderBottom: '1px solid #e5e7eb',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: '#fff'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-                      {editingAddress ? '✏️ Edit Address' : '📍 Add New Address'}
-                    </h2>
-                    <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px', color:'white' }}>
-                      {editingAddress ? 'Update your delivery address' : 'Add a new delivery address'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={closeModal}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.2)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '40px',
-                      height: '40px',
-                      color: '#fff',
-                      fontSize: '20px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-                    onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Body */}
-              <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
-                <div style={{ display: 'grid', gap: '24px' }}>
-                  {/* Street Address */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      📍 Street Address <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <textarea
-                      placeholder="Enter your complete address (house number, street, area, landmarks)"
-                      rows="3"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical',
-                        transition: 'all 0.2s ease',
-                        fontFamily: 'inherit'
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#667eea';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    />
-                  </div>
-
-                  {/* City and State Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '8px'
-                      }}>
-                        🏙️ City <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>🏙️ City <span className="required">*</span></label>
                       <input
                         type="text"
                         placeholder="Enter city"
                         value={formData.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                          outline: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#667eea';
-                          e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#e5e7eb';
-                          e.target.style.boxShadow = 'none';
-                        }}
                       />
                     </div>
 
-                    <div>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '8px'
-                      }}>
-                        🗺️ State <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <select
-                        value={formData.state}
-                        onChange={(e) => handleInputChange('state', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                          outline: 'none',
-                          backgroundColor: '#fff',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#667eea';
-                          e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#e5e7eb';
-                          e.target.style.boxShadow = 'none';
-                        }}
-                      >
+                    <div className="form-group">
+                      <label>🗺️ State <span className="required">*</span></label>
+                      <select value={formData.state} onChange={(e) => handleInputChange('state', e.target.value)}>
                         <option value="">Select State</option>
                         {nigerianStates.map(state => (
                           <option key={state} value={state}>{state}</option>
@@ -528,178 +478,80 @@ const AccountAddress = () => {
                     </div>
                   </div>
 
-                  {/* Postal Code */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      📮 Postal Code <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter postal code (e.g., 100001)"
-                      value={formData.postal_code}
-                      onChange={(e) => handleInputChange('postal_code', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#667eea';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    />
-                  </div>
 
-                  {/* Default Address Toggle */}
-                  <div style={{
-                    padding: '20px',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}>
-                      <div style={{ position: 'relative' }}>
+                  <div className="coordinates-section d-none">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>🌐 Latitude</label>
                         <input
-                          type="checkbox"
-                          checked={formData.is_default}
-                          onChange={(e) => handleInputChange('is_default', e.target.checked)}
-                          style={{
-                            width: '20px',
-                            height: '20px',
-                            cursor: 'pointer',
-                            accentColor: '#667eea'
-                          }}
+                          type="text"
+                          readonly
+                          placeholder="Latitude"
+                          value={formData.latitude}
+                          onChange={(e) => handleInputChange('latitude', e.target.value)}
                         />
                       </div>
-                      <div>
-                        <div style={{ color: '#374151', fontWeight: '600' }}>
-                          ⭐ Set as Default Address
-                        </div>
-                        <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '2px' }}>
-                          This will be your primary delivery address
-                        </div>
+                      <div className="form-group">
+                        <label>🌐 Longitude</label>
+                        <input
+                          type="text"
+                          readonly
+                          placeholder="Longitude"
+                          value={formData.longitude}
+                          onChange={(e) => handleInputChange('longitude', e.target.value)}
+                        />
                       </div>
+                    </div>
+                    {!formData.latitude && !formData.longitude && (
+                      <button
+                        type="button"
+                        className="geocode-btn"
+                        onClick={geocodeAddress}
+                        disabled={geocoding || !formData.address}
+                      >
+                        {geocoding ? '🔄 Getting coordinates...' : '🌐 Get Coordinates from Address'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="default-toggle">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={formData.is_default}
+                        onChange={(e) => handleInputChange('is_default', e.target.checked)}
+                      />
+                      <span className="checkbox-label">
+                        <span className="star-icon">⭐</span>
+                        <div>
+                          <strong>Set as Default Address</strong>
+                          <p>This will be your primary delivery address</p>
+                        </div>
+                      </span>
                     </label>
                   </div>
                 </div>
-              </div>
 
-              {/* Modal Footer */}
-              <div style={{
-                padding: '24px 32px',
-                borderTop: '1px solid #e5e7eb',
-                backgroundColor: '#f9fafb',
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end'
-              }}>
-                <button
-                  onClick={closeModal}
-                  disabled={saving}
-                  style={{
-                    padding: '12px 24px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    backgroundColor: '#fff',
-                    color: '#6b7280',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease',
-                    opacity: saving ? 0.6 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!saving) {
-                      e.target.style.borderColor = '#d1d5db';
-                      e.target.style.backgroundColor = '#f9fafb';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!saving) {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.backgroundColor = '#fff';
-                    }
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveAddress}
-                  disabled={saving}
-                  style={{
-                    padding: '12px 24px',
-                    border: 'none',
-                    borderRadius: '12px',
-                    background: saving ? '#9ca3af' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    minWidth: '140px',
-                    justifyContent: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!saving) {
-                      e.target.style.transform = 'translateY(-1px)';
-                      e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.3)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!saving) {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }
-                  }}
-                >
-                  {saving ? (
-                    <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid #fff',
-                        borderTop: '2px solid transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      {editingAddress ? 'Updating...' : 'Saving...'}
-                    </>
-                  ) : (
-                    <>
-                      {editingAddress ? '✏️ Update Address' : '💾 Save Address'}
-                    </>
-                  )}
-                </button>
+                <div className="modal-footer">
+                  <button className="btn-cancel" onClick={closeModal} disabled={saving}>
+                    Cancel
+                  </button>
+                  <button className="btn-save" onClick={handleSaveAddress} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <span className="spinner" style="padding:0px; margin:0px; width:20px; height:20px"></span>
+                        {editingAddress ? 'Updating...' : 'Saving...'}
+                      </>
+                    ) : (
+                      <>{editingAddress ? '✏️ Update Address' : '💾 Save Address'}</>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
     </>
   );
 };

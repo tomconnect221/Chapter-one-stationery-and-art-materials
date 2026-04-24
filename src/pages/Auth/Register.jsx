@@ -45,7 +45,7 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container ">
       <div className="auth-wrapper">
         <div className="auth-card">
           {/* Logo */}
