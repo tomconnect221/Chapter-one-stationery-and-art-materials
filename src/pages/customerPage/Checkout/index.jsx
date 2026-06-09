@@ -279,6 +279,10 @@ setDeliveryFee(0);
       const orderPayload = {
         branch_id: form.branch_id,
         delivery_address: form.address,
+        delivery_city: form.city,
+        delivery_state: form.state,
+        delivery_latitude: form.latitude,
+        delivery_longitude: form.longitude,
         delivery_phone: form.phone,
         delivery_fee: deliveryFee,
         delivery_weight_fee: deliveryBreakdown?.weightFee || 0,
@@ -349,7 +353,7 @@ setDeliveryFee(0);
       )}
 
       <section className="checkout-page">
-        <div className="containe verticalLimit">
+        <div className="container verticalLimit">
           {/* Progress Steps */}
           <div className="checkout-progress">
             <div className={`progress-step ${activeStep >= 1 ? 'active' : ''}`}>
@@ -461,16 +465,16 @@ setDeliveryFee(0);
 
                     {/* Location Coordinates Display */}
                     <div className="form-group full-width">
-                      <div className="location-info-box">
-                        <h6 className="mb-3">Location Coordinates</h6>
+                      {/* <div className="location-info-box"> */}
+                        {/* <h6 className="mb-3">Location Coordinates</h6> */}
                         
                         {selectedBranch ? (
                           <div className="coordinate-section mb-3">
-                            <div className="coordinate-label">
+                            {/* <div className="coordinate-label">
                               <i className="fas fa-store-alt me-2"></i>
                               <strong>Branch Location:</strong> {selectedBranch.name}
-                            </div>
-                            <div className="coordinate-values">
+                            </div> */}
+                            {/* <div className="coordinate-values">
                               <span className="badge bg-primary me-2">
                                 <i className="fas fa-map-marker-alt me-1"></i>
                                 Lat: {selectedBranch.latitude}
@@ -479,29 +483,29 @@ setDeliveryFee(0);
                                 <i className="fas fa-map-marker-alt me-1"></i>
                                 Lng: {selectedBranch.longitude}
                               </span>
-                            </div>
+                            </div> */}
                           </div>
                         ) : (
                           <div className="coordinate-section mb-3 text-muted">
-                            <small><i className="fas fa-info-circle me-1"></i> Select a branch to see its coordinates</small>
+                            <small><i className="fas fa-info-circle me-1"></i> Select a branch you will like to order from</small>
                           </div>
                         )}
 
                         <div className="coordinate-section">
-                          <div className="coordinate-label">
+                          {/* <div className="coordinate-label">
                             <i className="fas fa-home me-2"></i>
                             <strong>Your Delivery Location:</strong>
-                          </div>
+                          </div> */}
                           {form.latitude && form.longitude ? (
                             <div className="coordinate-values">
-                              <span className="badge bg-success me-2">
+                              {/* <span className="badge bg-success me-2">
                                 <i className="fas fa-map-marker-alt me-1"></i>
                                 Lat: {form.latitude}
                               </span>
                               <span className="badge bg-success">
                                 <i className="fas fa-map-marker-alt me-1"></i>
                                 Lng: {form.longitude}
-                              </span>
+                              </span> */}
                             </div>
                           ) : (
                             <div className="text-muted">
@@ -510,12 +514,12 @@ setDeliveryFee(0);
                           )}
                         </div>
 
-                        {selectedBranch && form.latitude && form.longitude && distance > 0 && (
+                        {/* {selectedBranch && form.latitude && form.longitude && distance > 0 && (
                           <div className="distance-display mt-3 p-2 bg-light rounded">
                             <i className="fas fa-route me-2"></i>
                             <strong>Distance:</strong> {distance.toFixed(2)} km
                           </div>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>
@@ -536,11 +540,7 @@ setDeliveryFee(0);
                           <div className="payment-desc">Secure online payment</div>
                         </div>
                       </label>
-                    </div>
-                  </div>
-                </div>
               </div> */}
-            </div>
 
             {/* Order Summary */}
             <div className="checkout-sidebar">

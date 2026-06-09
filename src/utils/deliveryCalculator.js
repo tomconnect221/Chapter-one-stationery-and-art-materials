@@ -39,41 +39,52 @@ export const calculateDistanceGoogleMaps = async (branchLat, branchLng, customer
   }
 
   try {
-    const origins = `${bLat},${bLng}`;
-    const destinations = `${cLat},${cLng}`;
-    
-    // Use allorigins.win as CORS proxy (no authentication required)
-    const corsProxyUrl = 'https://api.allorigins.win/raw?url=';
-    const googleMapsUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origins}&destinations=${destinations}&units=metric&key=${GOOGLE_MAPS_API_KEY}`;
-    const proxyUrl = corsProxyUrl + encodeURIComponent(googleMapsUrl);
-    
-    const response = await fetch(proxyUrl);
+    // Use Google Routes API (New API replacing Legacy Distance Matrix)
+    // Documentation: https://developers.google.com/maps/documentation/routes/compute_route_directions
+    const requestBody = {
+      origin: {
+        location: {
+          latLng: { latitude: bLat, longitude: bLng }
+        }
+      },
+      destination: {
+        location: {
+          latLng: { latitude: cLat, longitude: cLng }
+        }
+      },
+      travelMode: "DRIVE"
+    };
+
+    const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+        "X-Goog-FieldMask": "routes.distanceMeters"
+      },
+      body: JSON.stringify(requestBody)
+    });
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
 
-    // Check API response status
-    if (data.status !== 'OK') {
-      throw new Error(`Google Maps API error: ${data.status}`);
-    }
-
-    // Extract distance from first row/element
-    const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== 'OK') {
-      throw new Error('Unable to calculate distance between locations');
+    // Check if a route was found
+    if (!data.routes || data.routes.length === 0) {
+      throw new Error('No route found between these locations');
     }
 
     // Distance is returned in meters, convert to km
-    const distanceInMeters = element.distance?.value || 0;
+    const distanceInMeters = data.routes[0].distanceMeters || 0;
     const distanceInKm = distanceInMeters / 1000;
 
     // Cache the result
     distanceCache.set(key, { distance: distanceInKm, timestamp: Date.now() });
     return distanceInKm;
   } catch (error) {
-    console.error('Google Maps Distance Matrix API error:', error.message);
+    console.error('Google Maps Routes API error:', error.message);
     throw error;
   }
 };

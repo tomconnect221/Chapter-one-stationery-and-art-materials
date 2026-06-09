@@ -16,6 +16,7 @@ const AccountAddress = () => {
   const [saving, setSaving] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [addressSelected, setAddressSelected] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const addressInputRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_URL;
@@ -106,11 +107,14 @@ const AccountAddress = () => {
       [field]: value
     }));
 
-    if (field === 'address' && value.length >= 3) {
-      searchAddress(value);
-    } else if (field === 'address' && value.length < 3) {
-      setAddressSuggestions([]);
-      setShowSuggestions(false);
+    if (field === 'address') {
+      setAddressSelected(false);
+      if (value.length >= 3) {
+        searchAddress(value);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
     }
   };
 
@@ -162,6 +166,7 @@ const AccountAddress = () => {
       setGeocoding(false);
       setShowSuggestions(false);
       setAddressSuggestions([]);
+      setAddressSelected(true);
     }
   };
 
@@ -187,6 +192,7 @@ const AccountAddress = () => {
             latitude: placeDetails.latitude,
             longitude: placeDetails.longitude
           }));
+          setAddressSelected(true);
           toast.success('Coordinates obtained from address!');
         } else {
           toast.warning('Could not find coordinates for this address');
@@ -214,6 +220,7 @@ const AccountAddress = () => {
     setEditingAddress(null);
     setAddressSuggestions([]);
     setShowSuggestions(false);
+    setAddressSelected(false);
   };
 
   const openAddModal = () => {
@@ -225,6 +232,7 @@ const AccountAddress = () => {
     setEditingAddress(address.id);
     setFormData({ ...address });
     setShowModal(true);
+    setAddressSelected(true);
   };
 
   const closeModal = () => {
@@ -235,6 +243,11 @@ const AccountAddress = () => {
   const handleSaveAddress = async () => {
     if (!formData.address || !formData.city || !formData.state) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!addressSelected) {
+      toast.error('Please select an address from the suggested list to ensure accuracy');
       return;
     }
 
@@ -349,7 +362,7 @@ const AccountAddress = () => {
                       <div className="address-card-header">
                         <div className="address-type">
                           <span className="type-icon">📍</span>
-                          <span className="address-name">Address {address.id}</span>
+                          <span className="address-name">Address</span>
                         </div>
                         <div className="address-actions">
                           <button className="action-btn edit" onClick={() => openEditModal(address)} title="Edit address" disabled={saving}>✏️</button>
@@ -378,7 +391,7 @@ const AccountAddress = () => {
                             {saving ? 'Updating...' : 'Set as Default'}
                           </button>
                         )}
-                        <button className="deliver-here-btn col-lg-6 col-sm-12">Deliver to this Address</button>
+                        {/* <button className="deliver-here-btn col-lg-6 col-sm-12">Deliver to this Address</button> */}
                       </div>
                     </div>
                   </div>
@@ -429,15 +442,26 @@ const AccountAddress = () => {
 
                   <div className="form-group address-input-group">
                     <label>📍 Street Address <span className="required">*</span></label>
-                    <div className="input-wrapper">
+                    <div className="input-wrappe">
                       <textarea
                         ref={addressInputRef}
                         placeholder="Enter your complete address (or search for it)"
                         rows="3"
+                        className={addressSelected ? 'address-selected' : ''}
                         value={formData.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
-                        onFocus={() => formData.address.length >= 3 && setShowSuggestions(true)}
+                        onFocus={() => formData.address.length >= 3 && !addressSelected && setShowSuggestions(true)}
                       />
+                      {formData.address && !addressSelected && !showSuggestions && (
+                        <div className="address-hint" style={{  color: '#ff9900', fontSize: '12px', marginTop: '5px' }}>
+                          ⚠️ Please search and select an address from the suggestions
+                        </div>
+                      )}
+                      {addressSelected && (
+                        <div className="address-hint" style={{ color: '#28a745', fontSize: '12px', marginTop: '5px' }}>
+                          ✅ Address verified
+                        </div>
+                      )}
                       {showSuggestions && addressSuggestions.length > 0 && (
                         <div className="address-suggestions">
                           {addressSuggestions.map((suggestion, index) => (
@@ -447,7 +471,7 @@ const AccountAddress = () => {
                               onClick={() => selectAddressSuggestion(suggestion)}
                               style={{ cursor: geocoding ? 'wait' : 'pointer', opacity: geocoding ? 0.6 : 1 }}
                             >
-                              <div style={{ fontWeight: 500 }}>{suggestion.displayName}</div>
+                              <div style={{ fontWeight: 500 }}>{suggestion.displayName?.text || suggestion.displayName || suggestion.formattedAddress}</div>
                               <div style={{ fontSize: '0.85em', color: '#666' }}>{suggestion.formattedAddress}</div>
                             </div>
                           ))}
@@ -539,7 +563,7 @@ const AccountAddress = () => {
                   <button className="btn-save" onClick={handleSaveAddress} disabled={saving}>
                     {saving ? (
                       <>
-                        <span className="spinner" style="padding:0px; margin:0px; width:20px; height:20px"></span>
+                        <span className="spinner" style={{ padding: '0px', margin: '0px', width: '20px', height: '20px' }}></span>
                         {editingAddress ? 'Updating...' : 'Saving...'}
                       </>
                     ) : (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../../../component/Auth/AuthContext'; // Adjust path as needed
+import { searchAddresses, getPlaceDetails, extractAddressParts } from '../../../../utils/googlePlacesApi';
 import './AccountDetails.css';
 
 const AccountDetails = ({ user, onUpdate }) => {
@@ -20,6 +21,10 @@ const AccountDetails = ({ user, onUpdate }) => {
     state: '',
     postal_code: ''
   });
+
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   // Password visibility states
   const [passwordVisible, setPasswordVisible] = useState({
@@ -78,6 +83,55 @@ const AccountDetails = ({ user, onUpdate }) => {
       ...prev,
       [field]: value
     }));
+
+    if (field === 'address') {
+      if (value.length >= 3) {
+        searchAddress(value);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  const searchAddress = async (query) => {
+    try {
+      const suggestions = await searchAddresses(query);
+      if (suggestions && suggestions.length > 0) {
+        setAddressSuggestions(suggestions);
+        setShowSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+    }
+  };
+
+  const selectAddressSuggestion = async (suggestion) => {
+    try {
+      setGeocoding(true);
+      const placeDetails = await getPlaceDetails(suggestion.id);
+      
+      if (placeDetails) {
+        const addressParts = extractAddressParts(placeDetails);
+        
+        setProfileForm(prev => ({
+          ...prev,
+          address: placeDetails.formattedAddress || suggestion.formattedAddress,
+          city: addressParts.city || prev.city || '',
+          state: addressParts.state || prev.state || '',
+          postal_code: addressParts.postal_code || prev.postal_code || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error selecting address:', error);
+    } finally {
+      setGeocoding(false);
+      setShowSuggestions(false);
+      setAddressSuggestions([]);
+    }
   };
 
   const handlePasswordChange = (field, value) => {
@@ -282,20 +336,36 @@ const AccountDetails = ({ user, onUpdate }) => {
                         )}
                       </div>
 
-                      <div className="form-group mb-1 full-width">
+                      {/* <div className="form-group mb-1 full-width position-relative">
                         <label className="form-label">Address</label>
                         <input
                           className={`form-control ${getFieldError('address') ? 'is-invalid' : ''}`}
                           type="text"
-                          placeholder="Your Address"
+                          placeholder="Search your Address"
                           value={profileForm.address}
                           onChange={(e) => handleProfileChange('address', e.target.value)}
                         />
                         {getFieldError('address') && (
                           <div className="invalid-feedback">{getFieldError('address')}</div>
                         )}
-                      </div>
-
+                        {showSuggestions && addressSuggestions.length > 0 && (
+                          <ul className="address-suggestions-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, backgroundColor: 'white', border: '1px solid #ccc', borderRadius: '4px', padding: 0, margin: 0, listStyle: 'none', maxHeight: '200px', overflowY: 'auto' }}>
+                            {addressSuggestions.map((suggestion) => (
+                              <li
+                                key={suggestion.id}
+                                onClick={() => selectAddressSuggestion(suggestion)}
+                                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                              >
+                                {suggestion.formattedAddress}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {geocoding && <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Fetching details...</div>}
+                      </div> */}
+{/* 
                       <div className="form-group mb-1">
                         <label className="form-label">City</label>
                         <input
@@ -303,46 +373,44 @@ const AccountDetails = ({ user, onUpdate }) => {
                           type="text"
                           placeholder="Your City"
                           value={profileForm.city}
-                          onChange={(e) => handleProfileChange('city', e.target.value)}
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                         />
                         {getFieldError('city') && (
                           <div className="invalid-feedback">{getFieldError('city')}</div>
                         )}
-                      </div>
+                      </div> */}
 
-                      <div className="form-group mb-1">
+                      {/* <div className="form-group mb-1">
                         <label className="form-label">State</label>
-                        <select
+                        <input
                           className={`form-control ${getFieldError('state') ? 'is-invalid' : ''}`}
+                          type="text"
+                          placeholder="Your State"
                           value={profileForm.state}
-                          onChange={(e) => handleProfileChange('state', e.target.value)}
-                          required
-                        >
-                          <option value="">Select State</option>
-                          {nigeriaStates.map((state) => (
-                            <option key={state} value={state}>{state}</option>
-                          ))}
-                        </select>
-
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                        />
                         {getFieldError('state') && (
                           <div className="invalid-feedback">{getFieldError('state')}</div>
                         )}
-                      </div>
+                      </div> */}
 
 
-                      <div className="form-group mb-1">
+                      {/* <div className="form-group mb-1">
                         <label className="form-label">Postal Code</label>
                         <input
                           className={`form-control ${getFieldError('postal_code') ? 'is-invalid' : ''}`}
                           type="text"
                           placeholder="Your Postal Code"
                           value={profileForm.postal_code}
-                          onChange={(e) => handleProfileChange('postal_code', e.target.value)}
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                         />
                         {getFieldError('postal_code') && (
                           <div className="invalid-feedback">{getFieldError('postal_code')}</div>
                         )}
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="form-actions">

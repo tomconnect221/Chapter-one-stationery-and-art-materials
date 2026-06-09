@@ -389,6 +389,119 @@ const AdminSettings = ({ userType = 'admin' }) => {
           </div>
         </div>
 
+        <div className='d-none' style={{ padding: '20px', border: '2px solid #e5e7eb', borderRadius: '12px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#212529', marginBottom: '4px' }}>📧 Email Configuration</h3>
+          <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '20px' }}>Configure your outgoing mail (SMTP) server settings</p>
+          <div style={{ display: 'grid', gap: '20px' }}>
+
+            {/* Row 1: Mailer & Encryption */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Mail Driver / Mailer</label>
+                <select
+                  value={settings.general?.email?.mailer || 'smtp'}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, mailer: e.target.value })}
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff' }}
+                >
+                  <option value="smtp">SMTP</option>
+                  <option value="sendmail">Sendmail</option>
+                  <option value="mailgun">Mailgun</option>
+                  <option value="ses">Amazon SES</option>
+                  <option value="log">Log (Debug)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Encryption</label>
+                <select
+                  value={settings.general?.email?.encryption || 'tls'}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, encryption: e.target.value })}
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff' }}
+                >
+                  <option value="tls">TLS</option>
+                  <option value="ssl">SSL</option>
+                  <option value="">None</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Host & Port */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>SMTP Host</label>
+                <input
+                  type="text"
+                  value={settings.general?.email?.host || ''}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, host: e.target.value })}
+                  placeholder="e.g. smtp.mailtrap.io"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>SMTP Port</label>
+                <input
+                  type="number"
+                  value={settings.general?.email?.port || ''}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, port: e.target.value })}
+                  placeholder="e.g. 465, 587, 2525"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Username & Password */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>SMTP Username</label>
+                <input
+                  type="text"
+                  value={settings.general?.email?.username || ''}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, username: e.target.value })}
+                  placeholder="your_smtp_username"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>SMTP Password <span style={{ fontWeight: '400', color: '#6c757d' }}>(leave blank to keep current)</span></label>
+                <input
+                  type="password"
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, password: e.target.value })}
+                  placeholder="••••••••"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+            </div>
+
+            {/* Row 4: From Address & From Name */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>From Email Address</label>
+                <input
+                  type="email"
+                  value={settings.general?.email?.fromAddress || ''}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, fromAddress: e.target.value })}
+                  placeholder="noreply@yourstore.com"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>From Name</label>
+                <input
+                  type="text"
+                  value={settings.general?.email?.fromName || ''}
+                  onChange={(e) => updateSetting('general', 'email', { ...settings.general.email, fromName: e.target.value })}
+                  placeholder="Your Store Name"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+                />
+              </div>
+            </div>
+
+            {/* Info note */}
+            <div style={{ padding: '12px 16px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '13px', color: '#1e40af' }}>
+              ℹ️ Changes to email settings will take effect immediately after saving. Make sure your SMTP credentials are correct before saving.
+            </div>
+          </div>
+        </div>
+
         <div style={{ paddingTop: '24px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={() => saveSettings('general')} disabled={saving} style={{ padding: '12px 32px', border: 'none', borderRadius: '8px', backgroundColor: saving ? '#6c757d' : '#007bff', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving...' : 'Save Changes'}</button>
         </div>

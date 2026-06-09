@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { updateProfileSuccess, changePasswordSuccess } from '../../store/authSlice'; 
+import { searchAddresses, getPlaceDetails, extractAddressParts } from '../../utils/googlePlacesApi';
 
 const useInjectStyles = () => {
   useEffect(() => {
@@ -154,7 +155,12 @@ const ProfileSettings = ({ userType = 'admin' }) => {
     profilePicture: null,
     role: '',
     isActive: true,
-    name: ''
+    name: '',
+    licenseNumber: '',
+    vehicleType: '',
+    vehicleNumber: '',
+    latitude: '',
+    longitude: ''
   });
 
   // Password change state
@@ -174,6 +180,10 @@ const ProfileSettings = ({ userType = 'admin' }) => {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+// console.log('user type', userType);
 
   // Fetch profile data from API
   const fetchProfileData = async () => {
@@ -181,7 +191,9 @@ const ProfileSettings = ({ userType = 'admin' }) => {
       setFetchLoading(true);
       const endpoint = userType === 'admin'
         ? `${import.meta.env.VITE_API_URL}/api/admin/profile`
-        : `${import.meta.env.VITE_API_URL}/api/subadmin/profile`;
+        : userType === 'dispatch'
+          ? `${import.meta.env.VITE_API_URL}/api/rider/profile`
+          : `${import.meta.env.VITE_API_URL}/api/subadmin/profile`;
       
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -208,7 +220,12 @@ const ProfileSettings = ({ userType = 'admin' }) => {
           profilePicture: profileData.profile_picture,
           role: profileData.role || '',
           isActive: profileData.is_active || true,
-          name: profileData.name || ''
+          name: profileData.name || '',
+          licenseNumber: profileData.license_number || '',
+          vehicleType: profileData.vehicle_type || '',
+          vehicleNumber: profileData.vehicle_number || '',
+          latitude: profileData.latitude || '',
+          longitude: profileData.longitude || ''
         });
 
         if (profileData.profile_picture) {
@@ -231,19 +248,32 @@ const ProfileSettings = ({ userType = 'admin' }) => {
   const updateProfile = async (profileData) => {
     try {
       const formData = new URLSearchParams();
-      formData.append('first_name', profileData.firstName);
-      formData.append('last_name', profileData.lastName);
-      formData.append('email', profileData.email);
-      formData.append('phone', profileData.phone);
-      formData.append('address', profileData.address);
-      formData.append('city', profileData.city);
-      formData.append('state', profileData.state);
-      formData.append('bio', profileData.bio);
-      formData.append('postal_code', profileData.postalCode);
+      if (userType === 'dispatch') {
+        formData.append('name', profileData.name);
+        formData.append('email', profileData.email);
+        formData.append('phone', profileData.phone);
+        formData.append('license_number', profileData.licenseNumber);
+        formData.append('vehicle_type', profileData.vehicleType);
+        formData.append('vehicle_number', profileData.vehicleNumber);
+        if (profileData.latitude) formData.append('latitude', profileData.latitude);
+        if (profileData.longitude) formData.append('longitude', profileData.longitude);
+      } else {
+        formData.append('first_name', profileData.firstName);
+        formData.append('last_name', profileData.lastName);
+        formData.append('email', profileData.email);
+        formData.append('phone', profileData.phone);
+        formData.append('address', profileData.address);
+        formData.append('city', profileData.city);
+        formData.append('state', profileData.state);
+        formData.append('bio', profileData.bio);
+        formData.append('postal_code', profileData.postalCode);
+      }
 
       const endpoint = userType === 'admin'
         ? `${import.meta.env.VITE_API_URL}/api/admin/profile`
-        : `${import.meta.env.VITE_API_URL}/api/subadmin/profile`;
+        : userType === 'dispatch'
+          ? `${import.meta.env.VITE_API_URL}/api/rider/profile`
+          : `${import.meta.env.VITE_API_URL}/api/subadmin/profile`;
 
       const response = await fetch(endpoint, {
         method: 'PUT',
@@ -272,7 +302,12 @@ const ProfileSettings = ({ userType = 'admin' }) => {
           profilePicture: updatedProfile.profile_picture,
           role: updatedProfile.role || '',
           isActive: updatedProfile.is_active || true,
-          name: updatedProfile.name || ''
+          name: updatedProfile.name || '',
+          licenseNumber: updatedProfile.license_number || '',
+          vehicleType: updatedProfile.vehicle_type || '',
+          vehicleNumber: updatedProfile.vehicle_number || '',
+          latitude: updatedProfile.latitude || '',
+          longitude: updatedProfile.longitude || ''
         };
         
         setProfile(newProfileState);
@@ -291,7 +326,12 @@ const ProfileSettings = ({ userType = 'admin' }) => {
             postal_code: updatedProfile.postal_code,
             bio: updatedProfile.bio,
             profile_picture: updatedProfile.profile_picture,
-            name: updatedProfile.name || `${updatedProfile.first_name} ${updatedProfile.last_name}`.trim()
+            name: updatedProfile.name || `${updatedProfile.first_name || ''} ${updatedProfile.last_name || ''}`.trim(),
+            license_number: updatedProfile.license_number,
+            vehicle_type: updatedProfile.vehicle_type,
+            vehicle_number: updatedProfile.vehicle_number,
+            latitude: updatedProfile.latitude,
+            longitude: updatedProfile.longitude
           },
           message: data.message || 'Profile updated successfully!'
         }));
@@ -356,6 +396,57 @@ const ProfileSettings = ({ userType = 'admin' }) => {
   // Handle profile field changes
   const handleProfileChange = (field, value) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+
+    if (field === 'address') {
+      if (value.length >= 3) {
+        searchAddress(value);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  const searchAddress = async (query) => {
+    try {
+      const suggestions = await searchAddresses(query);
+      if (suggestions && suggestions.length > 0) {
+        setAddressSuggestions(suggestions);
+        setShowSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+    }
+  };
+
+  const selectAddressSuggestion = async (suggestion) => {
+    try {
+      setGeocoding(true);
+      const placeDetails = await getPlaceDetails(suggestion.id);
+      
+      if (placeDetails) {
+        const addressParts = extractAddressParts(placeDetails);
+        
+        setProfile(prev => ({
+          ...prev,
+          address: placeDetails.formattedAddress || suggestion.formattedAddress,
+          city: addressParts.city || prev.city || '',
+          state: addressParts.state || prev.state || '',
+          postalCode: addressParts.postal_code || prev.postalCode || '',
+          latitude: placeDetails.latitude || prev.latitude || '',
+          longitude: placeDetails.longitude || prev.longitude || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error selecting address:', error);
+    } finally {
+      setGeocoding(false);
+      setShowSuggestions(false);
+      setAddressSuggestions([]);
+    }
   };
 
   // Handle password field changes
@@ -543,112 +634,211 @@ const ProfileSettings = ({ userType = 'admin' }) => {
               </div>
 
               <div className="ps-form">
-                <div className="ps-row">
-                  <div className="ps-field">
-                    <label>First Name</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.firstName}
-                      onChange={(e) => handleProfileChange('firstName', e.target.value)}
-                      placeholder="Enter first name"
-                    />
-                  </div>
-                  <div className="ps-field">
-                    <label>Last Name</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.lastName}
-                      onChange={(e) => handleProfileChange('lastName', e.target.value)}
-                      placeholder="Enter last name"
-                    />
-                  </div>
-                </div>
+                {userType === 'dispatch' ? (
+                  <>
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>Full Name</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.name}
+                          onChange={(e) => handleProfileChange('name', e.target.value)}
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>Email Address</label>
+                        <input 
+                          type="email"
+                          className="ps-input"
+                          value={profile.email}
+                          onChange={(e) => handleProfileChange('email', e.target.value)}
+                          placeholder="Enter email"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>Phone Number</label>
+                        <input 
+                          type="tel"
+                          className="ps-input"
+                          value={profile.phone}
+                          onChange={(e) => handleProfileChange('phone', e.target.value)}
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>License Number</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.licenseNumber} readOnly
+                          onChange={(e) => handleProfileChange('licenseNumber', e.target.value)}
+                          placeholder="Enter license number"
+                        />
+                      </div>
+                    </div>
 
-                <div className="ps-row">
-                  <div className="ps-field">
-                    <label>Email Address</label>
-                    <input 
-                      type="email"
-                      className="ps-input"
-                      value={profile.email}
-                      onChange={(e) => handleProfileChange('email', e.target.value)}
-                      placeholder="Enter email"
-                    />
-                  </div>
-                  <div className="ps-field">
-                    <label>Phone Number</label>
-                    <input 
-                      type="tel"
-                      className="ps-input"
-                      value={profile.phone}
-                      onChange={(e) => handleProfileChange('phone', e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-                </div>
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>Vehicle Type</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.vehicleType} readOnly
+                          onChange={(e) => handleProfileChange('vehicleType', e.target.value)}
+                          placeholder="e.g. bike, car, van"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>Vehicle Number</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.vehicleNumber} readOnly
+                          onChange={(e) => handleProfileChange('vehicleNumber', e.target.value)}
+                          placeholder="Enter vehicle number"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>First Name</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.firstName}
+                          onChange={(e) => handleProfileChange('firstName', e.target.value)}
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>Last Name</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.lastName}
+                          onChange={(e) => handleProfileChange('lastName', e.target.value)}
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                    </div>
+    
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>Email Address</label>
+                        <input 
+                          type="email"
+                          className="ps-input"
+                          value={profile.email}
+                          onChange={(e) => handleProfileChange('email', e.target.value)}
+                          placeholder="Enter email"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>Phone Number</label>
+                        <input 
+                          type="tel"
+                          className="ps-input"
+                          value={profile.phone}
+                          onChange={(e) => handleProfileChange('phone', e.target.value)}
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
-                <div className="ps-row full">
-                  <div className="ps-field">
-                    <label>Address</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.address}
-                      onChange={(e) => handleProfileChange('address', e.target.value)}
-                      placeholder="Enter street address"
-                    />
-                  </div>
-                </div>
+                {userType !== 'dispatch' && (
+                  <>
+                    <div className="ps-row full">
+                      <div className="ps-field" style={{ position: 'relative' }}>
+                        <label>Address</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.address}
+                          onChange={(e) => handleProfileChange('address', e.target.value)}
+                          placeholder="Search your street address"
+                        />
+                        {showSuggestions && addressSuggestions.length > 0 && (
+                          <ul className="address-suggestions-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, backgroundColor: 'white', border: '1px solid #ccc', borderRadius: '4px', padding: 0, margin: 0, listStyle: 'none', maxHeight: '200px', overflowY: 'auto' }}>
+                            {addressSuggestions.map((suggestion) => (
+                              <li
+                                key={suggestion.id}
+                                onClick={() => selectAddressSuggestion(suggestion)}
+                                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                              >
+                                <div style={{ fontWeight: 500 }}>{suggestion.displayName?.text || suggestion.displayName || suggestion.formattedAddress}</div>
+                                <div style={{ fontSize: '0.85em', color: '#666' }}>{suggestion.formattedAddress}</div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {geocoding && <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Fetching details...</div>}
+                      </div>
+                    </div>
 
-                <div className="ps-row">
-                  <div className="ps-field">
-                    <label>City</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.city}
-                      onChange={(e) => handleProfileChange('city', e.target.value)}
-                      placeholder="Enter city"
-                    />
-                  </div>
-                  <div className="ps-field">
-                    <label>State</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.state}
-                      onChange={(e) => handleProfileChange('state', e.target.value)}
-                      placeholder="Enter state"
-                    />
-                  </div>
-                </div>
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>City</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.city}
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                          placeholder="Auto-filled city"
+                        />
+                      </div>
+                      <div className="ps-field">
+                        <label>State</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.state}
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                          placeholder="Auto-filled state"
+                        />
+                      </div>
+                    </div>
 
-                <div className="ps-row">
-                  <div className="ps-field">
-                    <label>Postal Code</label>
-                    <input 
-                      type="text"
-                      className="ps-input"
-                      value={profile.postalCode}
-                      onChange={(e) => handleProfileChange('postalCode', e.target.value)}
-                      placeholder="Enter postal code"
-                    />
-                  </div>
-                </div>
+                    <div className="ps-row">
+                      <div className="ps-field">
+                        <label>Postal Code</label>
+                        <input 
+                          type="text"
+                          className="ps-input"
+                          value={profile.postalCode}
+                          readOnly
+                          style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                          placeholder="Auto-filled postal code"
+                        />
+                      </div>
+                    </div>
 
-                <div className="ps-row full">
-                  <div className="ps-field">
-                    <label>Bio</label>
-                    <textarea 
-                      className="ps-textarea"
-                      value={profile.bio}
-                      onChange={(e) => handleProfileChange('bio', e.target.value)}
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                </div>
+                    <div className="ps-row full">
+                      <div className="ps-field">
+                        <label>Bio</label>
+                        <textarea 
+                          className="ps-textarea"
+                          value={profile.bio}
+                          onChange={(e) => handleProfileChange('bio', e.target.value)}
+                          placeholder="Tell us about yourself..."
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="ps-footer">
                   <button 
@@ -709,7 +899,7 @@ const ProfileSettings = ({ userType = 'admin' }) => {
                       >
                         {showPasswords.new ? '👁️' : '👁️‍🗨️'}
                       </button>
-                    </div>
+                    </div> 
                     {passwordData.newPassword && (
                       <>
                         <div className="ps-strength-bar">

@@ -138,7 +138,7 @@ const HomeSLider = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const HERO_HEIGHT = "70vh";
+    const HERO_HEIGHT = "75vh";
 
     // Function to strip HTML tags from text
     const stripHtmlTags = (html) => {

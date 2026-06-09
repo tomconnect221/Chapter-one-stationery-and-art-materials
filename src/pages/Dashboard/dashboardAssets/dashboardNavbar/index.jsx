@@ -361,7 +361,7 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
           )}
 
           {/* Notifications Dropdown */}
-          <div className="dropdown me-2" ref={notificationsDropdownRef}>
+          {/* <div className="dropdown me-2" ref={notificationsDropdownRef}>
             <button
               style={{ width: '100px' }}
               className="btn btn-outline-secondary position-relative border-0"
@@ -417,7 +417,7 @@ const DashboardNavbar = ({ userType, sidebarOpen, onToggleSidebar, onToggleMobil
                 <button className="btn btn-primary btn-sm w-100">View All Notifications</button>
               </div>
             </div>
-          </div>
+          </div> */}
 
 
           {/* User Dropdown */}

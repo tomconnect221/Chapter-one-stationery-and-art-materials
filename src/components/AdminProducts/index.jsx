@@ -3,6 +3,8 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import * as XLSX from 'xlsx';
+import { useDropzone } from 'react-dropzone';
 import '../AdminProducts/AdminProducts.css';
 import ProductView from './ProductView';
 import ProductForm from './ProductForm';
@@ -25,6 +27,12 @@ const AdminProducts = ({ userType = 'admin' }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imagesPreviews, setImagesPreviews] = useState([]);
   
+  // Bulk Upload Modal states
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState(0);
+  const [bulkUploadStats, setBulkUploadStats] = useState({ total: 0, success: 0, failed: 0, failedRows: [] });
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  
   // View mode: 'list', 'view', 'add', 'edit'
   const [viewMode, setViewMode] = useState('list');
 
@@ -35,13 +43,14 @@ const AdminProducts = ({ userType = 'admin' }) => {
 
   const { token, user } = useSelector((state) => state.auth);
 
+  // Initial load — categories and branches only need fetching once per session
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(currentPage, itemsPerPage, searchTerm);
     fetchCategories();
     fetchBranches();
-  }, [token, currentPage, itemsPerPage]);
+  }, [token]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = currentPage, perPage = itemsPerPage, search = searchTerm) => {
     try {
       setLoading(true);
       setError(null);
@@ -51,8 +60,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
           Authorization: `Bearer ${token}`,
         },
         params: {
-          page: currentPage,
-          per_page: itemsPerPage
+          page,
+          per_page: perPage,
+          ...(search ? { search } : {})
         }
       });
 
@@ -118,6 +128,28 @@ const AdminProducts = ({ userType = 'admin' }) => {
       setLoading(false);
     }
   };
+
+  const handlePageChange = (page) => {
+    if (page < 1 || page > paginationData.last_page) return;
+    setCurrentPage(page);
+    fetchProducts(page, itemsPerPage, searchTerm);
+  };
+
+  const handleItemsPerPageChange = (value) => {
+    const newPerPage = Number(value);
+    setItemsPerPage(newPerPage);
+    setCurrentPage(1);
+    fetchProducts(1, newPerPage, searchTerm);
+  };
+
+  // Debounce search across all pages
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setCurrentPage(1);
+      fetchProducts(1, itemsPerPage, searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
   const fetchCategories = async () => {
     try {
       const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/categories` : `${import.meta.env.VITE_API_URL}/api/subadmin/categories`;
@@ -153,17 +185,8 @@ const AdminProducts = ({ userType = 'admin' }) => {
 
   const canEdit = userType === 'admin';
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
 
-  const handleItemsPerPageChange = (value) => {
-    const newItemsPerPage = Number(value);
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
-    // Fetch products directly to ensure pagination works immediately
-    fetchProducts();
-  };
+
 
   const handleAdd = () => {
     setModalMode('add');
@@ -544,11 +567,153 @@ const AdminProducts = ({ userType = 'admin' }) => {
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleDownloadTemplate = () => {
+    const headers = [
+      'name', 'description', 'short_description', 'price', 'cost_price', 
+      'sale_price', 'stock_quantity', 'min_stock_level', 'sku', 'barcode', 
+      'weight', 'dimensions', 'color', 'size', 'brand', 'model', 
+      'warranty_period', 'tax_rate', 'meta_title', 'meta_description', 
+      'meta_keywords', 'category_id', 'branch_id', 'is_active', 
+      'is_featured', 'is_digital', 'requires_shipping'
+    ];
+    const ws = XLSX.utils.json_to_sheet([headers.reduce((acc, curr) => ({ ...acc, [curr]: '' }), {})], { header: headers, skipHeader: true });
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Product_Upload_Template.xlsx");
+  };
+
+  const handleBulkUploadClick = () => {
+    setBulkUploadProgress(0);
+    setBulkUploadStats({ total: 0, success: 0, failed: 0, failedRows: [] });
+    setIsBulkUploading(false);
+    setShowBulkModal(true);
+  };
+
+  const processBulkUpload = async (file) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        setIsBulkUploading(true);
+        setBulkUploadStats({ total: data.length, success: 0, failed: 0, failedRows: [] });
+        
+        let successCount = 0;
+        let failCount = 0;
+        let failedRowsArr = [];
+
+        for (let i = 0; i < data.length; i++) {
+          const item = data[i];
+          
+          const formData = new FormData();
+          Object.keys(item).forEach(key => {
+            if(item[key] !== undefined && item[key] !== null && String(item[key]).trim() !== '') {
+              formData.append(key, String(item[key]));
+            }
+          });
+          
+          try {
+            const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/products` : `${import.meta.env.VITE_API_URL}/api/subadmin/products`;
+            await axios.post(URL, formData, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            successCount++;
+          } catch (err) {
+            failCount++;
+            failedRowsArr.push({
+              index: i + 1, // Add 1 because Excel rows usually start at 2 (1 is header)
+              name: item.name || 'Unknown',
+              reason: err.response?.data?.message || 'Failed to upload'
+            });
+          }
+
+          // Update progress after each item
+          setBulkUploadProgress(((i + 1) / data.length) * 100);
+          setBulkUploadStats({ 
+            total: data.length, 
+            success: successCount, 
+            failed: failCount, 
+            failedRows: failedRowsArr 
+          });
+        }
+        
+        toast.success(`Bulk upload completed! ${successCount} added, ${failCount} failed.`);
+        fetchProducts();
+      } catch (err) {
+        toast.error('Failed to parse Excel file');
+      } finally {
+        setIsBulkUploading(false);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleDownloadAllProducts = async () => {
+    try {
+      toast.info('Fetching all products for download...');
+      const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/products` : `${import.meta.env.VITE_API_URL}/api/subadmin/products`;
+      const response = await axios.get(URL, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { per_page: 10000 } // Get a large number of products to cover everything
+      });
+
+      if (response.data.success) {
+        const allProducts = response.data.data.data;
+        
+        const dataForExcel = allProducts.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          short_description: p.short_description,
+          price: p.price,
+          cost_price: p.cost_price,
+          sale_price: p.sale_price,
+          stock_quantity: p.stock_quantity,
+          min_stock_level: p.min_stock_level,
+          sku: p.sku,
+          barcode: p.barcode,
+          weight: p.weight,
+          dimensions: p.dimensions,
+          color: p.color,
+          size: p.size,
+          brand: p.brand,
+          model: p.model,
+          warranty_period: p.warranty_period,
+          tax_rate: p.tax_rate,
+          meta_title: p.meta_title,
+          meta_description: p.meta_description,
+          meta_keywords: p.meta_keywords,
+          category_id: p.category_id,
+          branch_id: p.branch_id,
+          is_active: p.is_active ? 1 : 0,
+          is_featured: p.is_featured ? 1 : 0,
+          is_digital: p.is_digital ? 1 : 0,
+          requires_shipping: p.requires_shipping ? 1 : 0
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataForExcel);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Products");
+        XLSX.writeFile(wb, "All_Products.xlsx");
+        toast.success('Download completed');
+      }
+    } catch (err) {
+      toast.error('Failed to download products');
+    }
+  };
+
+  // Filtering is now handled server-side via the search param in fetchProducts
+  const filteredProducts = products;
 
   // Render based on view mode
   if (viewMode === 'view' && selectedProduct) {
@@ -642,9 +807,20 @@ const AdminProducts = ({ userType = 'admin' }) => {
           <p>Manage store products and inventory</p>
         </div>
         {canEdit && (
-          <button className="btn-primary" onClick={handleAdd}>
-            + Add Product
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-success btn" onClick={handleDownloadTemplate} style={{ padding: '8px 12px', }}>
+              📥 Template
+            </button>
+            <button className="btn-primary" onClick={handleBulkUploadClick} style={{ padding: '8px 12px', }}>
+              📤 Bulk Upload
+            </button>
+            <button className="btn-primary" onClick={handleDownloadAllProducts} style={{ padding: '8px 12px', }}>
+              📊 Export All
+            </button>
+            <button className="btn-primary" onClick={handleAdd}>
+              + Add Product
+            </button>
+          </div>
         )}
       </div>
 
@@ -697,10 +873,11 @@ const AdminProducts = ({ userType = 'admin' }) => {
               onChange={(e) => handleItemsPerPageChange(e.target.value)}
               className="page-select"
             >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
+              {[5, 10, 20, 50].map(n => (
+                <option key={n} value={n}>
+                  {n} {paginationData.total > 0 ? `of ${paginationData.total}` : ''}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -956,6 +1133,18 @@ const AdminProducts = ({ userType = 'admin' }) => {
           loading={deleteLoading === productToDelete?.id}
         />
       )}
+
+      {/* Bulk Upload Modal */}
+      <BulkUploadModal 
+        show={showBulkModal} 
+        onClose={() => setShowBulkModal(false)} 
+        onUpload={processBulkUpload}
+        progress={bulkUploadProgress}
+        stats={bulkUploadStats}
+        isUploading={isBulkUploading}
+        categories={categories}
+        branches={branches}
+      />
     </div>
   );
 };
@@ -1533,3 +1722,155 @@ const ProductModal = ({
   );
 };
 export default AdminProducts;
+
+const BulkUploadModal = ({ show, onClose, onUpload, progress, stats, isUploading, categories, branches }) => {
+  if (!show) return null;
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      if (!isUploading && acceptedFiles.length > 0) {
+        onUpload(acceptedFiles[0]);
+      }
+    },
+    accept: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
+    multiple: false
+  });
+
+  return (
+    <div className="modal-overlay jumia-modal">
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1200px', padding: '20px' }}>
+        <div className="modal-header">
+          <h2>Bulk Upload Products</h2>
+          {!isUploading && <button className="modal-close" onClick={onClose}>×</button>}
+        </div>
+        
+        <div className="modal-body">
+          {!isUploading && stats.total === 0 && (
+            <>
+              {/* ID References Section */}
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                {/* Categories */}
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ marginBottom: '10px', fontSize: '14px', color: '#555' }}>Category IDs Reference</h4>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px', padding: '10px', backgroundColor: '#fdfdfd' }}>
+                    {categories && categories.length > 0 ? categories.map(cat => (
+                      <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
+                        <span style={{ fontSize: '13px' }}>{cat.name}</span>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(cat.id);
+                            toast.success(`Copied Category ID: ${cat.id}`);
+                          }}
+                          style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#e0e0e0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          title="Copy ID"
+                        >
+                          Copy: {cat.id}
+                        </button>
+                      </div>
+                    )) : <div style={{ fontSize: '13px', color: '#888' }}>No categories found</div>}
+                  </div>
+                </div>
+
+                {/* Branches */}
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ marginBottom: '10px', fontSize: '14px', color: '#555' }}>Branch IDs Reference</h4>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px', padding: '10px', backgroundColor: '#fdfdfd' }}>
+                    {branches && branches.length > 0 ? branches.map(branch => (
+                      <div key={branch.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
+                        <span style={{ fontSize: '13px' }}>{branch.name}</span>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(branch.id);
+                            toast.success(`Copied Branch ID: ${branch.id}`);
+                          }}
+                          style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#e0e0e0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          title="Copy ID"
+                        >
+                          Copy: {branch.id}
+                        </button>
+                      </div>
+                    )) : <div style={{ fontSize: '13px', color: '#888' }}>No branches found</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                {...getRootProps()} 
+              style={{
+                border: `2px dashed ${isDragActive ? '#4caf50' : '#cccccc'}`,
+                padding: '40px',
+                textAlign: 'center',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: isDragActive ? '#f1f8e9' : '#fafafa',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <input {...getInputProps()} />
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>📥</div>
+              {isDragActive ? (
+                <p>Drop the Excel file here...</p>
+              ) : (
+                <p>Drag and drop an Excel file here, or click to select a file</p>
+              )}
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '10px' }}>
+                Only .xlsx and .xls files are supported
+              </div>
+            </div>
+            </>
+          )}
+
+          {(isUploading || stats.total > 0) && (
+            <div className="upload-progress-container" style={{ marginTop: '20px' }}>
+              <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+                Upload Progress: {Math.round(progress)}%
+              </div>
+              <div style={{ width: '100%', height: '10px', backgroundColor: '#e0e0e0', borderRadius: '5px', overflow: 'hidden' }}>
+                <div style={{ width: `${progress}%`, height: '100%', backgroundColor: progress === 100 ? '#4caf50' : '#f68b1e', transition: 'width 0.3s ease' }}></div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>{stats.total}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Total Rows</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4caf50' }}>{stats.success}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Successful</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f44336' }}>{stats.failed}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Failed</div>
+                </div>
+              </div>
+
+              {stats.failedRows && stats.failedRows.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <h4 style={{ color: '#f44336', marginBottom: '10px' }}>Failed Rows Detail:</h4>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px', backgroundColor: '#fff', fontSize: '13px' }}>
+                    {stats.failedRows.map((fail, idx) => (
+                      <div key={idx} style={{ marginBottom: '5px', paddingBottom: '5px', borderBottom: '1px solid #eee' }}>
+                        <strong>Row {fail.index + 1}:</strong> {fail.name || 'Unknown Item'} - <span style={{ color: '#f44336' }}>{fail.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="modal-footer" style={{ marginTop: '20px' }}>
+          {progress === 100 || (stats.total > 0 && !isUploading) ? (
+            <button className="btn-primary" onClick={onClose}>Done</button>
+          ) : (
+            <button className="btn-secondary" onClick={onClose} disabled={isUploading}>Cancel</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

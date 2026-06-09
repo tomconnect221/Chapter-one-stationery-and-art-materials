@@ -411,17 +411,17 @@ const ProductForm = ({
                 <div className="pf-form-group">
                   <label>Color</label>
                   <div className="pf-colors-container">
-                    {colors[0] ? (
-                      <div className="pf-color-chip" title={`#${colors[0].slice(1).toUpperCase()}`}>
+                    {color ? (
+                      <div className="pf-color-chip" title={`#${color.slice(1).toUpperCase()}`}>
                         <div 
                           className="pf-color-swatch" 
-                          style={{ backgroundColor: colors[0] }}
-                          onClick={() => navigator.clipboard.writeText(colors[0])}
+                          style={{ backgroundColor: color }}
+                          onClick={() => navigator.clipboard.writeText(color)}
                         />
                         <button
                           type="button"
                           className="pf-color-remove"
-                          onClick={() => onColorsChange([])}
+                          onClick={() => onColorChange('')}
                           disabled={loading}
                           title="Clear color"
                         >
@@ -443,12 +443,12 @@ const ProductForm = ({
                       <input
                         type="color"
                         value={color || "#ff5733"}
-                        onChange={(e) => onColorsChange([e.target.value])}
+                        onChange={(e) => onColorChange(e.target.value)}
                         disabled={loading}
                         className="pf-color-input"
                         title="Pick product color"
                       />
-                      <span className="pf-picker-label">{colors[0] ? 'Change Color' : 'Pick Color'}</span>
+                      <span className="pf-picker-label">{color ? 'Change Color' : 'Pick Color'}</span>
                     </label>
                   </div>
                   {errors.colors && <span className="pf-error-text">{errors.colors}</span>}

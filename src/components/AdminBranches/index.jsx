@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { searchAddresses, getPlaceDetails } from '../../utils/googlePlacesApi';
 import './AdminBranchesstyle.css';
 
 const AdminBranches = ({ userType = 'admin', userBranch = null }) => {
@@ -254,12 +255,12 @@ const AdminBranches = ({ userType = 'admin', userBranch = null }) => {
       formData.append('email', selectedBranch.email);
 
       // Only append latitude and longitude if they are not empty
-      if (selectedBranch.latitude && selectedBranch.latitude.trim() !== '') {
-        formData.append('latitude', selectedBranch.latitude);
+      if (selectedBranch.latitude !== undefined && selectedBranch.latitude !== null && String(selectedBranch.latitude).trim() !== '') {
+        formData.append('latitude', String(selectedBranch.latitude));
       }
 
-      if (selectedBranch.longitude && selectedBranch.longitude.trim() !== '') {
-        formData.append('longitude', selectedBranch.longitude);
+      if (selectedBranch.longitude !== undefined && selectedBranch.longitude !== null && String(selectedBranch.longitude).trim() !== '') {
+        formData.append('longitude', String(selectedBranch.longitude));
       }
 
       let response;
@@ -731,6 +732,52 @@ const DeleteConfirmationModal = ({ branch, onConfirm, onCancel, loading }) => {
 };
 
 const BranchModal = ({ mode, branch, onSave, onClose, onChange, errors, loading }) => {
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+
+  const handleAddressChange = async (value) => {
+    onChange({ ...branch, address: value });
+    if (value.length >= 3) {
+      try {
+        const suggestions = await searchAddresses(value);
+        if (suggestions && suggestions.length > 0) {
+          setAddressSuggestions(suggestions);
+          setShowSuggestions(true);
+        } else {
+          setAddressSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectAddressSuggestion = async (suggestion) => {
+    try {
+      setGeocoding(true);
+      const placeDetails = await getPlaceDetails(suggestion.id);
+      if (placeDetails) {
+        onChange({
+          ...branch,
+          address: placeDetails.formattedAddress || suggestion.formattedAddress,
+          latitude: placeDetails.latitude || branch.latitude || '',
+          longitude: placeDetails.longitude || branch.longitude || ''
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGeocoding(false);
+      setShowSuggestions(false);
+      setAddressSuggestions([]);
+    }
+  };
+
   return (
     <div className="modal-overlay jumia-modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
@@ -786,9 +833,11 @@ const BranchModal = ({ mode, branch, onSave, onClose, onChange, errors, loading 
                 type="text"
                 value={branch.latitude}
                 onChange={(e) => onChange({ ...branch, latitude: e.target.value })}
-                placeholder="24.54642323 (optional)"
+                placeholder="Auto-filled from address"
                 className={`form-input ${errors.latitude ? 'error' : ''}`}
                 disabled={loading}
+                readOnly
+                style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
               />
               {errors.latitude && <span className="error-message">{errors.latitude[0]}</span>}
             </div>
@@ -799,9 +848,11 @@ const BranchModal = ({ mode, branch, onSave, onClose, onChange, errors, loading 
                 type="text"
                 value={branch.longitude}
                 onChange={(e) => onChange({ ...branch, longitude: e.target.value })}
-                placeholder="24.55675534 (optional)"
+                placeholder="Auto-filled from address"
                 className={`form-input ${errors.longitude ? 'error' : ''}`}
                 disabled={loading}
+                readOnly
+                style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
               />
               {errors.longitude && <span className="error-message">{errors.longitude[0]}</span>}
             </div>
@@ -821,17 +872,40 @@ const BranchModal = ({ mode, branch, onSave, onClose, onChange, errors, loading 
               </div>
             )}
 
-            <div className="form-field full-width">
+            <div className="form-field full-width" style={{ position: 'relative' }}>
               <label>Address *</label>
               <input
                 type="text"
                 value={branch.address}
-                onChange={(e) => onChange({ ...branch, address: e.target.value })}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                onFocus={() => branch.address.length >= 3 && setShowSuggestions(true)}
                 placeholder="Enter branch address"
                 className={`form-input ${errors.address ? 'error' : ''}`}
-                disabled={loading}
+                disabled={loading || geocoding}
               />
               {errors.address && <span className="error-message">{errors.address[0]}</span>}
+              
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div className="address-suggestions" style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, 
+                  background: '#fff', border: '1px solid #ddd', borderRadius: '4px',
+                  zIndex: 1000, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                  {addressSuggestions.map((suggestion) => (
+                    <div
+                      key={suggestion.id}
+                      onClick={() => selectAddressSuggestion(suggestion)}
+                      style={{ 
+                        padding: '10px', cursor: geocoding ? 'wait' : 'pointer', 
+                        borderBottom: '1px solid #eee', opacity: geocoding ? 0.6 : 1 
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{suggestion.displayName}</div>
+                      <div style={{ fontSize: '0.85em', color: '#666' }}>{suggestion.formattedAddress}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
