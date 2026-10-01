@@ -1,0 +1,255 @@
+.database-page {
+  min-height: 100vh;
+  padding: 28px 32px 48px;
+  color: #17212b;
+  background: #f4f6f7;
+}
+
+.database-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.database-eyebrow {
+  margin: 0 0 6px;
+  color: #54716c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.database-header h1 {
+  margin: 0;
+  color: #17212b;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.database-subtitle {
+  margin: 7px 0 0;
+  color: #596773;
+  font-size: 14px;
+}
+
+.database-security-note {
+  max-width: 900px;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  border-left: 3px solid #39756b;
+  color: #34464f;
+  background: #e8f1ef;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.database-action,
+.database-restore {
+  max-width: 980px;
+  padding: 22px 0;
+  border-top: 1px solid #d9e0e2;
+}
+
+.database-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.database-action-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.database-action-mark {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #b7cbc6;
+  color: #285e54;
+  background: #f8fbfa;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.database-action-copy h2 {
+  margin: 0;
+  color: #192a32;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.database-action-copy p {
+  max-width: 620px;
+  margin: 5px 0 0;
+  color: #5d6a72;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.database-primary-button,
+.database-restore-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  color: white;
+  background: #286b5e;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.database-primary-button:hover:not(:disabled) {
+  background: #1e574d;
+}
+
+.database-primary-button:disabled,
+.database-restore-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.database-restore {
+  margin-top: 4px;
+}
+
+.restore-mark {
+  border-color: #e6c1ad;
+  color: #a64e2e;
+  background: #fffaf7;
+}
+
+.database-danger-note {
+  margin: 18px 0 20px 52px;
+  padding: 12px 14px;
+  border-left: 3px solid #bd5a39;
+  color: #673a2d;
+  background: #fff0e9;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.database-restore-form {
+  display: grid;
+  justify-items: start;
+  gap: 9px;
+  max-width: 520px;
+  margin-left: 52px;
+}
+
+.database-field-label {
+  margin-top: 8px;
+  color: #26363e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.database-file-input,
+.database-text-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #c8d1d5;
+  border-radius: 4px;
+  color: #25343b;
+  background: white;
+  font-size: 13px;
+}
+
+.database-file-input:focus,
+.database-text-input:focus {
+  outline: 2px solid #95bdb4;
+  outline-offset: 1px;
+}
+
+.database-field-hint {
+  margin: -3px 0 2px;
+  color: #65727a;
+  font-size: 12px;
+}
+
+.database-restore-button {
+  margin-top: 10px;
+  background: #a9432c;
+}
+
+.database-restore-button:hover:not(:disabled) {
+  background: #853722;
+}
+
+.database-clear {
+  max-width: 980px;
+  margin-top: 8px;
+  padding: 22px 0;
+  border-top: 1px solid #d9e0e2;
+}
+
+.clear-mark {
+  border-color: #e6b7b7;
+  color: #a12d2d;
+  background: #fff8f8;
+}
+
+.database-clear-form {
+  display: grid;
+  justify-items: start;
+  gap: 9px;
+  max-width: 520px;
+  margin-left: 52px;
+}
+
+.database-clear-button {
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 0 16px;
+  border: 0;
+  color: white;
+  background: #8e2525;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.database-clear-button:hover:not(:disabled) {
+  background: #6f1d1d;
+}
+
+.database-clear-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.database-success-summary {
+  margin: 16px 0 0 52px;
+  color: #28644e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 680px) {
+  .database-page {
+    padding: 22px 16px 36px;
+  }
+
+  .database-action {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .database-primary-button {
+    width: 100%;
+  }
+
+  .database-danger-note,
+  .database-restore-form,
+  .database-clear-form,
+  .database-success-summary {
+    margin-left: 0;
+  }
+}

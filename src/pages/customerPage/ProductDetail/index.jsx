@@ -106,15 +106,13 @@ export default function ProductDetail() {
 
   const [qty, setQty] = useState(1);
   const [mainImage, setMainImage] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedVariantId, setSelectedVariantId] = useState('');
   const [qrModalIsOpen, setQrModalIsOpen] = useState(false);
 
   useEffect(() => {
     if (product) {
       setMainImage(product.image || (product.images && product.images[0]) || '');
-      setSelectedColor(product.color || '');
-      setSelectedSize(product.size || '');
+      setSelectedVariantId('');
     }
   }, [product]);
 
@@ -184,24 +182,71 @@ export default function ProductDetail() {
     );
   }
 
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const selectedVariant = variants.find(variant => variant.id === selectedVariantId) || null;
+  const availableStock = selectedVariant ? Number(selectedVariant.stock_quantity) : Number(product.stock_quantity);
+  const currentPrice = selectedVariant
+    ? Number(selectedVariant.display_price ?? selectedVariant.price)
+    : (hasAdDiscount && adIsValid) ? Number(product.price_after_ad_discount) : Number(product.price);
+  const selectedVariantOriginalPrice = selectedVariant ? Number(selectedVariant.price) : currentPrice;
+  const hasSelectedVariantDiscount = selectedVariant && currentPrice < selectedVariantOriginalPrice;
+  const selectedVariantDiscountAmount = selectedVariantOriginalPrice - currentPrice;
+  const selectedVariantDiscountPercent = selectedVariantOriginalPrice > 0
+    ? Math.round((selectedVariantDiscountAmount / selectedVariantOriginalPrice) * 100)
+    : 0;
+
   const handleAddToCart = () => {
-    const exists = cartItems.find(i => i.id === product.id);
+    if (variants.length > 0 && !selectedVariant) {
+      toast.error('Choose a color, size, and dimension option first.');
+      return;
+    }
+    if (availableStock < qty) {
+      toast.error(`Only ${availableStock} of this option are available.`);
+      return;
+    }
+    const exists = cartItems.find(i => i.product.id === product.id && i.product.variant_id === selectedVariant?.id);
     if (exists) {
       toast.info('Product already in cart');
       return;
     }
     // Use discounted price only if ad is valid, otherwise use original price
-    const priceToUse = (hasAdDiscount && adIsValid) ? parseFloat(product.price_after_ad_discount) : parseFloat(product.price);
-    dispatch(addToCartAction({ ...product, price: priceToUse, qty }));
+    const priceToUse = currentPrice;
+    dispatch(addToCartAction({
+      ...product,
+      price: priceToUse,
+      stock_quantity: selectedVariant ? Number(selectedVariant.stock_quantity) : product.stock_quantity,
+      qty,
+      variant_id: selectedVariant?.id || null,
+      variant_options: selectedVariant ? {
+        color: selectedVariant.color,
+        size: selectedVariant.size,
+        dimensions: selectedVariant.dimensions
+      } : null
+    }));
     toast.success('Product added to cart');
   };
 
   const handleBuyNow = () => {
-    const exists = cartItems.find(i => i.id === product.id);
+    if (variants.length > 0 && !selectedVariant) {
+      toast.error('Choose a color, size, and dimension option first.');
+      return;
+    }
+    const exists = cartItems.find(i => i.product.id === product.id && i.product.variant_id === selectedVariant?.id);
     if (!exists) {
       // Use discounted price only if ad is valid
-      const priceToUse = (hasAdDiscount && adIsValid) ? parseFloat(product.price_after_ad_discount) : parseFloat(product.price);
-      dispatch(addToCartAction({ ...product, price: priceToUse, qty }));
+      const priceToUse = currentPrice;
+      dispatch(addToCartAction({
+        ...product,
+        price: priceToUse,
+        stock_quantity: selectedVariant ? Number(selectedVariant.stock_quantity) : product.stock_quantity,
+        qty,
+        variant_id: selectedVariant?.id || null,
+        variant_options: selectedVariant ? {
+          color: selectedVariant.color,
+          size: selectedVariant.size,
+          dimensions: selectedVariant.dimensions
+        } : null
+      }));
       toast.success('Product added to cart');
     } else {
       toast.info('Product already in cart');
@@ -303,9 +348,9 @@ export default function ProductDetail() {
                       <tbody>
                         {product.brand && <tr><th>Brand</th><td>{product.brand}</td></tr>}
                         {product.model && <tr><th>Model</th><td>{product.model}</td></tr>}
-                        {product.dimensions && <tr><th>Dimensions</th><td>{product.dimensions}</td></tr>}
+                        {!product.variants?.length && product.dimensions && <tr><th>Dimensions</th><td>{product.dimensions}</td></tr>}
                         {product.weight && <tr><th>Weight</th><td>{product.weight}</td></tr>}
-                        {product.size && <tr><th>Size</th><td>{product.size}</td></tr>}
+                        {!product.variants?.length && product.size && <tr><th>Size</th><td>{product.size}</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -379,7 +424,23 @@ export default function ProductDetail() {
                 <div className="pricing-section mb-3">
 
                   <div className="d-flex align-items-center gap-3 mb-2">
-                    {hasAdDiscount ? (
+                    {selectedVariant ? (
+                      <>
+                        <div className="h2 mb-0" style={{ color: 'var(--brand)', fontWeight: '700' }}>
+                          {formatNGN(currentPrice)}
+                        </div>
+                        {hasSelectedVariantDiscount && (
+                          <>
+                            <div className="h5 mb-0 text-muted" style={{ textDecoration: 'line-through', color: '#999' }}>
+                              {formatNGN(selectedVariantOriginalPrice)}
+                            </div>
+                            <div className="badge bg-danger" style={{ fontSize: '12px', padding: '6px 10px' }}>
+                              -{selectedVariantDiscountPercent}%
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : hasAdDiscount ? (
                       <>
                         <div className="h2 mb-0" style={{ color: 'var(--brand)', fontWeight: '700' }}>
                           {formatNGN(product.price_after_ad_discount)}
@@ -392,26 +453,26 @@ export default function ProductDetail() {
                         </div>
                       </>
                     ) : (
-                      <div className="h2 mb-0" style={{ color: 'var(--brand)' }}>
-                        {formatNGN(product.price)}
+                        <div className="h2 mb-0" style={{ color: 'var(--brand)' }}>
+                          {variants.length > 0 ? 'From ' : ''}{formatNGN(currentPrice)}
                       </div>
                     )}
                   </div>
                   
-                  {hasAdDiscount && (
+                  {(selectedVariant ? hasSelectedVariantDiscount : hasAdDiscount) && (
                     <div className="savings-info mb-2 mt-5" style={{ color: '#2e7d32', fontSize: '14px', fontWeight: '600' }}>
-                      Save {formatNGN(adDiscountAmount)}
+                      Save {formatNGN(selectedVariant ? selectedVariantDiscountAmount : adDiscountAmount)}
                     </div>
                   )}
 
                   <div className="mb-2 mt-5 d-flex gap-2">
                     <div className="stock-info ">
                       <FaBox /> {
-                        product.stock_quantity === 0
+                        availableStock === 0
                           ? 'Out of stock'
-                          : product.stock_quantity <= product.min_stock_level
+                          : availableStock <= product.min_stock_level
                             ? 'Limited stock available'
-                            : ` in stock`
+                            : `${availableStock} in stock`
                       }
                     </div>
 
@@ -430,60 +491,69 @@ export default function ProductDetail() {
                 <p className="lead">{product.description || 'No description available.'}</p>
                 {product.short_description && <p className="small text-muted">{product.short_description}</p>}
 
-                {/* Variant selectors */}
-                <div className="variants-section mb-4">
-                  <div className="variant-selector">
-                    {product.color && (
-                      <div className="mb-3">
-                        <label className="form-label fw-bold">Color</label>
-                        <div className="d-flex gap-3 align-items-center">
-                          {/* Color Swatch */}
-                          <div 
-                            style={{
-                              width: '50px',
-                              height: '50px',
-                              borderRadius: '8px',
-                              border: '2px solid #e0e0e0',
-                              backgroundColor: product.color.startsWith('#') ? product.color : '#cccccc',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                            title={product.color}
-                          />
-                          {/* <div>
-                            <select className="form-select w-auto" value={selectedColor} onChange={e => setSelectedColor(e.target.value)}>
-                              <option value={product.color}>{product.color}</option>
-                            </select>
-                          </div> */}
-                        </div>
+                <div className="variants-section mb-4 p-0">
+                  {variants.length > 0 ? (
+                    <fieldset className="variant-selector m-0 p-2">
+                      <legend className="form-label fw-bold">Choose an option</legend>
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        {variants.map(variant => {
+                          const isSelected = selectedVariantId === variant.id;
+                          const isAvailable = Number(variant.stock_quantity) > 0;
+                          const optionLabels = [variant.color, variant.size, variant.dimensions].filter(Boolean);
+                          return (
+                            <button
+                              type="button"
+                              key={variant.id}
+                              onClick={() => setSelectedVariantId(variant.id)}
+                              disabled={!isAvailable}
+                              aria-pressed={isSelected}
+                              className="text-start"
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 14px',
+                                border: isSelected ? '2px solid #ff8a1d' : '1px solid #d7dce0',
+                                borderRadius: '10px',
+                                background: isSelected ? '#fff7ed' : '#fff',
+                                boxShadow: isSelected ? '0 0 0 3px rgba(255, 138, 29, 0.12), 0 8px 18px rgba(15, 23, 42, 0.08)' : '0 2px 8px rgba(15, 23, 42, 0.04)',
+                                opacity: isAvailable ? 1 : 0.55,
+                                transform: isSelected ? 'translateY(-1px)' : 'none',
+                                transition: 'all 0.2s ease-in-out',
+                                fontWeight: isSelected ? 700 : 500,
+                              }}
+                            >
+                              <span style={{ flex: 1 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <strong>{optionLabels.join(' · ')}</strong>
+                                  {isSelected && (
+                                    <span style={{ background: '#ff8a1d', color: '#fff', borderRadius: '999px', padding: '3px 8px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                                      Selected
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="d-block small text-muted" style={{ marginTop: '4px' }}>{isAvailable ? `${variant.stock_quantity} available` : 'Out of stock'}</span>
+                              </span>
+                              <strong style={{ color: isSelected ? '#111827' : '#374151' }}>{formatNGN(variant.display_price ?? variant.price)}</strong>
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
+                    </fieldset>
+                  ) : (product.color || product.size || product.dimensions) ? (
+                    <div className="small text-muted mb-3">
+                      {[product.color, product.size, product.dimensions].filter(Boolean).join(' · ')}
+                    </div>
+                  ) : null}
 
-                    {product.size && (
-                      <div className="mb-3">
-                        <label className="form-label fw-bold">Size</label>
-                        <div className="d-flex gap-2">
-                          <select className="form-select w-auto" value={selectedSize} onChange={e => setSelectedSize(e.target.value)}>
-                            <option value={product.size}>{product.size}</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {(product.dimensions || product.weight) && (
+                    {product.weight && (
                       <div className="specifications mt-3 pt-3 border-top">
-                        {product.dimensions && (
-                          <div className="small mb-2">
-                            <span className="text-muted">Dimensions:</span> {product.dimensions}
-                          </div>
-                        )}
-                        {product.weight && (
                           <div className="small">
                             <span className="text-muted">Weight:</span> {product.weight}
                           </div>
-                        )}
                       </div>
                     )}
-                  </div>
                 </div>
 
                 <div className="purchase-section mb-4">
@@ -510,7 +580,7 @@ export default function ProductDetail() {
                       className="btn btn-primar item-cart-btn mb-2"
                       style={{ background: 'var(--brand)', borderColor: 'var(--brand)' }}
                       onClick={handleAddToCart}
-                      disabled={product.stock_quantity === 0}
+                      disabled={availableStock === 0}
                     >
                       <FaBox /> Add to cart
                     </button>

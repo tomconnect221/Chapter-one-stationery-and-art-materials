@@ -184,8 +184,12 @@ const OrderDetails = () => {
                     
                     <div className="order-item-meta">
                       {item.product.brand && <span>Brand: {item.product.brand}</span>}
-                      {item.product.color && <span>Color: {item.product.color}</span>}
-                      {item.product.size && <span>Size: {item.product.size}</span>}
+                      {item.variant_options
+                        ? Object.entries(item.variant_options).filter(([, value]) => value).map(([key, value]) => <span key={key}>{key}: {value}</span>)
+                        : <>
+                          {item.product.color && <span>Color: {item.product.color}</span>}
+                          {item.product.size && <span>Size: {item.product.size}</span>}
+                        </>}
                     </div>
                     
                     <div className="order-item-pricing">

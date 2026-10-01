@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart as addToCartAction, removeFromCart, setQty } from '../../store/cartSlice';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -56,6 +56,7 @@ const isAdNotExpired = (product) => {
 
 export default function ProductItem({ view, product, onAddToCart, isWishlisted, wishlistId, isOnWishlistPage, onRemoveFromWishlist }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const cartItems = useSelector(s => (s.cart && s.cart.items) || []);
     const { addToWishlist, removeFromWishlist, loading: wishlistLoading } = useWishlist();
     const [loading, setLoading] = useState(false);
@@ -95,6 +96,10 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
 
     const handleAddClick = (p) => {
         if (!p.stock_quantity) return;
+        if (p.variants?.length > 0) {
+            navigate(`/product/${p.id}`);
+            return;
+        }
         
         setLoading(true);
         setTimeout(() => {
@@ -346,7 +351,7 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                         {hasDiscount ? (
                             <>
                                 <div className="item-current-price p-0 m-0 " style={{ color: '#28a745', fontWeight: '700' }}>
-                                    {displayDiscountedPrice}
+                                    {product.variants?.length > 0 ? 'From ' : ''}{displayDiscountedPrice}
                                 </div>
                                 <div className="item-price-comparison ">
                                     <span className="item-original-price " style={{ textDecoration: 'line-through', color: '#999' }}>
@@ -358,7 +363,7 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                                 </div>
                             </>
                         ) : (
-                            <div className="item-current-price p-0 m-0 ">{product.displayPrice}</div>
+                            <div className="item-current-price p-0 m-0 ">{product.variants?.length > 0 ? 'From ' : ''}{product.displayPrice}</div>
                         )}
                     </div>
 
@@ -396,7 +401,7 @@ export default function ProductItem({ view, product, onAddToCart, isWishlisted, 
                             disabled={!product.stock_quantity}
                         >
                             <FaShoppingCart className="item-cart-icon" />
-                            <span>{product.stock_quantity ? 'ADD TO CART' : 'OUT OF STOCK'}</span>
+                            <span>{product.stock_quantity ? (product.variants?.length ? 'CHOOSE OPTIONS' : 'ADD TO CART') : 'OUT OF STOCK'}</span>
                         </button>
                     )}
                 </div>

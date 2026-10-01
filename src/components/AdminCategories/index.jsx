@@ -5,6 +5,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../AdminProducts/AdminProducts.css';
 import './AdminCategoriesStyling.css';
+import { hasPermission } from '../../utils/permissions';
 
 const AdminCategories = ({ userType = 'admin' }) => {
   const [categories, setCategories] = useState([]);
@@ -77,8 +78,10 @@ const AdminCategories = ({ userType = 'admin' }) => {
     }
   };
 
-  const canEdit = userType === 'admin' || userType === 'subadmin';
-  const canDelete = userType === 'admin'; // Only admins can delete categories
+  const { user } = useSelector((state) => state.auth);
+  const canCreate = hasPermission(user, 'categories.create');
+  const canEdit = hasPermission(user, 'categories.update');
+  const canDelete = hasPermission(user, 'categories.delete');
 
   // Pagination calculations
   const filteredCategories = categories.filter(category =>
@@ -360,7 +363,7 @@ const AdminCategories = ({ userType = 'admin' }) => {
           <h1>Categories Management</h1>
           <p>Manage product categories</p>
         </div>
-        {canEdit && (
+        {canCreate && (
           <button className="btn-primary" onClick={handleAdd}>
             + Add Category
           </button>
@@ -464,7 +467,22 @@ const AdminCategories = ({ userType = 'admin' }) => {
                       </div>
                     )}
                   </td>
-                  <td><strong>{category.name}</strong></td>
+                  <td>
+                    <strong>{category.name}</strong>
+                    <div style={{ fontSize: '12px', color: '#6c757d', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      ID: {category.id}
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(category.id);
+                          toast.success('Category ID copied!');
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '14px' }}
+                        title="Copy ID"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </td>
                   <td style={{ maxWidth: '200px' }}>
                     <div style={{
                       overflow: 'hidden',

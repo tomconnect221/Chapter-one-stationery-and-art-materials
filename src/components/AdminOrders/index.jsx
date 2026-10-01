@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 import './AdminOrderStyling.css';
 import { toast } from 'react-toastify';
 import useCategories from '../../hooks/useCategories';
+import { hasPermission } from '../../utils/permissions';
 
 const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
   const [orders, setOrders] = useState([]);
@@ -17,7 +18,7 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(10);
   const base_url = import.meta.env.VITE_API_URL;
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const [riders, setRiders] = useState([]);
@@ -135,7 +136,8 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
   };
 
   const branches = ['Lagos Main', 'Abuja Branch', 'Port Harcourt', 'Kano Branch'];
-  const canEdit = userType === 'admin' || userType === 'subadmin' ;
+  const canEdit = hasPermission(user, 'orders.update');
+  const canAssignRider = hasPermission(user, 'orders.assign_rider');
 
   const fetchRiders = async () => {
     try {
@@ -568,7 +570,7 @@ const AdminOrders = ({ userType = 'admin', userBranch = null }) => {
                     <button className="btn-icon" onClick={() => handleViewDetails(order)} title="View" style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}>
                       👁️
                     </button>
-                    {canEdit && order.status !== 'delivered' && order.status !== 'cancelled' && (
+                    {canAssignRider && order.status !== 'delivered' && order.status !== 'cancelled' && (
                       <button className="btn-icon" onClick={() => handleAssignRider(order)} title="Assign Rider" style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}>
                         🚚
                       </button>

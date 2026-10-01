@@ -46,14 +46,16 @@ const cartSlice = createSlice({
   reducers: {
     addToCart(state, action) {
       const payload = action.payload || {};
-      const id = payload.id;
-      if (id == null) return;
+      const productId = payload.id;
+      if (productId == null) return;
+      const variantId = payload.variant_id || null;
+      const id = variantId ? `${productId}:${variantId}` : productId;
       const delta = Math.max(1, Number(payload.qty || 1));
       const existing = state.items.find(i => i.id === id);
       if (existing) {
         existing.qty += delta;
       } else {
-        state.items.push({ id, qty: delta, product: payload });
+        state.items.push({ id, qty: delta, product: { ...payload, variant_id: variantId } });
       }
       // Save to localStorage after change
       saveCartToStorage(state.items);

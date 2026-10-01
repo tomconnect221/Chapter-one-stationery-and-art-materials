@@ -17,6 +17,14 @@ const toolbarOptions = [
 
 const quillModules = { toolbar: toolbarOptions };
 const quillFormats = ['bold', 'italic', 'underline', 'strike', 'header', 'link', 'image', 'video'];
+const getSliderErrorMessage = (error, fallback) => {
+  const errors = error.response?.data?.errors || {};
+  const firstValidationMessage = Object.values(errors)
+    .flatMap(messages => Array.isArray(messages) ? messages : [messages])
+    .find(message => typeof message === 'string' && message.trim());
+
+  return firstValidationMessage || error.response?.data?.message || fallback;
+};
 
 const AdminSettings = ({ userType = 'admin' }) => {
   const [activeTab, setActiveTab] = useState(userType === 'subadmin' ? 'branch' : 'general');
@@ -26,6 +34,7 @@ const AdminSettings = ({ userType = 'admin' }) => {
   const [editingSlider, setEditingSlider] = useState(null);
   const [sliderForm, setSliderForm] = useState({ title: '', description: '', link: '', image: '', imageFile: null, video: '', type: 'image' });
   const [sliderImagePreview, setSliderImagePreview] = useState('');
+  const [sliderErrors, setSliderErrors] = useState({});
 
   const [logo, setLogo] = useState('');
   const [logoPreview, setLogoPreview] = useState('');
@@ -245,6 +254,7 @@ const AdminSettings = ({ userType = 'admin' }) => {
 
   const addSlider = async () => {
     try {
+      setSliderErrors({});
       setSaving(true);
       const formData = new FormData();
       formData.append('title', sliderForm.title);
@@ -254,13 +264,17 @@ const AdminSettings = ({ userType = 'admin' }) => {
       if (sliderForm.imageFile) formData.append('image_path', sliderForm.imageFile);
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/sliders`, formData, { headers: { Authorization: `Bearer ${token}` } });
       if (response.data.success) { toast.success('Slider created successfully'); await fetchSliders(); resetSliderForm(); }
-      else toast.error('Failed to create slider');
-    } catch (error) { toast.error('Failed to create slider'); }
+      else toast.error(response.data.message || 'Failed to create slider');
+    } catch (error) {
+      setSliderErrors(error.response?.data?.errors || {});
+      toast.error(getSliderErrorMessage(error, 'Failed to create slider'));
+    }
     finally { setSaving(false); }
   };
 
   const updateSlider = async () => {
     try {
+      setSliderErrors({});
       setSaving(true);
       const formData = new FormData();
       formData.append('title', sliderForm.title);
@@ -271,8 +285,11 @@ const AdminSettings = ({ userType = 'admin' }) => {
       if (sliderForm.imageFile) formData.append('image_path', sliderForm.imageFile);
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/sliders/${editingSlider.id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
       if (response.data.success) { toast.success('Slider updated successfully'); await fetchSliders(); resetSliderForm(); }
-      else toast.error('Failed to update slider');
-    } catch (error) { toast.error('Failed to update slider'); }
+      else toast.error(response.data.message || 'Failed to update slider');
+    } catch (error) {
+      setSliderErrors(error.response?.data?.errors || {});
+      toast.error(getSliderErrorMessage(error, 'Failed to update slider'));
+    }
     finally { setSaving(false); }
   };
 
@@ -312,10 +329,26 @@ const AdminSettings = ({ userType = 'admin' }) => {
 
   const handleSliderImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) { const reader = new FileReader(); reader.onload = (e) => { setSliderImagePreview(e.target.result); setSliderForm(prev => ({ ...prev, image: e.target.result, imageFile: file })); }; reader.readAsDataURL(file); }
+    if (file && file.size > 2 * 1024 * 1024) {
+      const message = 'The image path field must not be greater than 2048 kilobytes.';
+      setSliderErrors(prev => ({ ...prev, image_path: [message] }));
+      e.target.value = '';
+      toast.error(message);
+      return;
+    }
+
+    if (file) {
+      setSliderErrors(prev => ({ ...prev, image_path: undefined }));
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setSliderImagePreview(event.target.result);
+        setSliderForm(prev => ({ ...prev, image: event.target.result, imageFile: file }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const resetSliderForm = () => { setSliderForm({ title: '', description: '', link: '', image: '', imageFile: null, video: '', type: 'image' }); setSliderImagePreview(''); setShowSliderForm(false); setEditingSlider(null); };
+  const resetSliderForm = () => { setSliderForm({ title: '', description: '', link: '', image: '', imageFile: null, video: '', type: 'image' }); setSliderImagePreview(''); setSliderErrors({}); setShowSliderForm(false); setEditingSlider(null); };
   const handleSliderFormSubmit = async (e) => { e.preventDefault(); if (editingSlider) await updateSlider(); else await addSlider(); };
 
   const tabs = userType === 'subadmin' ? [{ id: 'branch', label: 'Branch Settings', icon: '🏢' }] : [{ id: 'general', label: 'General', icon: '🏪' },
@@ -600,7 +633,7 @@ const AdminSettings = ({ userType = 'admin' }) => {
           </div>
           <div><label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Description</label><ReactQuill value={sliderForm.description} onChange={handleSliderDescriptionChange} modules={quillModules} formats={quillFormats} theme="snow" style={{ border: '2px solid #e5e7eb', borderRadius: '8px' }} /></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div><label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Upload Image *</label><input type="file" accept="image/*" onChange={handleSliderImageChange} required={!editingSlider} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />{sliderImagePreview && <img src={sliderImagePreview} alt="Preview" style={{ marginTop: '12px', maxHeight: '150px', borderRadius: '8px' }} />}</div>
+            <div><label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Upload Image *</label><input type="file" accept="image/*" onChange={handleSliderImageChange} required={!editingSlider} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />{sliderErrors.image_path?.[0] && <p role="alert" style={{ color: '#b42318', fontSize: '13px', margin: '8px 0 0' }}>{sliderErrors.image_path[0]}</p>}{sliderImagePreview && <img src={sliderImagePreview} alt="Preview" style={{ marginTop: '12px', maxHeight: '150px', borderRadius: '8px' }} />}</div>
             <div><label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Link URL</label><input type="url" value={sliderForm.link} onChange={(e) => setSliderForm(prev => ({ ...prev, link: e.target.value }))} placeholder="https://example.com" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} /></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

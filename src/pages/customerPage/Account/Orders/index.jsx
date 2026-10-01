@@ -499,6 +499,11 @@ const Orders = () => {
                       </div>
                       <div className="item-info">
                         <h4 className="item-name">{item.product.name}</h4>
+                        {item.variant_options && (
+                          <div className="item-details">
+                            {Object.entries(item.variant_options).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(' · ')}
+                          </div>
+                        )}
                         <div className="item-details">
                           <span className="item-qty">Qty: {item.quantity}</span>
                           <span className="item-price">{formatPrice(item.unit_price)}</span>

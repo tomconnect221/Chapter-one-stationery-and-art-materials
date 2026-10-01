@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../AdminProducts/AdminProducts.css';
 import { useSelector } from 'react-redux';
+import { hasPermission } from '../../utils/permissions';
 
 const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
   const [inventory, setInventory] = useState([]);
@@ -174,7 +175,7 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
 
   const handleRestock = (item) => {
     setModalMode('restock');
-    setSelectedItem({ ...item, quantity: 0, supplier: '' });
+    setSelectedItem({ ...item, quantity: 0, supplier: '', variant_id: '' });
     setShowModal(true);
   };
 
@@ -206,12 +207,11 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
       if (modalMode === 'restock') {
         await restockInventory(selectedItem.id, {
           quantity: selectedItem.quantity,
-          supplier: selectedItem.supplier
+          supplier: selectedItem.supplier,
+          variant_id: selectedItem.variant_id
         });
       } else if (modalMode === 'adjust') {
-        await updateInventory(selectedItem.id, {
-          quantity_in_stock: selectedItem.quantity_in_stock,
-          quantity_reserved: selectedItem.quantity_reserved,
+        const updateData = {
           reorder_level: selectedItem.reorder_level,
           max_stock_level: selectedItem.max_stock_level,
           cost_price: selectedItem.cost_price,
@@ -220,7 +220,12 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
           expiry_date: selectedItem.expiry_date,
           notes: selectedItem.notes,
           is_active: selectedItem.is_active
-        });
+        };
+        if (!selectedItem.product?.variants?.length) {
+          updateData.quantity_in_stock = selectedItem.quantity_in_stock;
+          updateData.quantity_reserved = selectedItem.quantity_reserved;
+        }
+        await updateInventory(selectedItem.id, updateData);
       }
       setShowModal(false);
     } catch (err) {
@@ -246,7 +251,9 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
     return matchesSearch && matchesStatus;
   });
 
-  const canEdit = userType === 'admin' || userType === 'subadmin';
+  const canEdit = hasPermission(user, 'inventory.update');
+  const canRestock = hasPermission(user, 'inventory.restock');
+  const canDelete = hasPermission(user, 'inventory.delete');
 
   if (loading) return <div className="loading">Loading inventory...</div>;
   if (error) return <div className="error">Error: {error}</div>;
@@ -339,6 +346,11 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                     <div style={{fontSize: '0.8em', color: '#666'}}>
                       {item.product?.brand} • {item.product?.model}
                     </div>
+                    {item.product?.variants?.length > 0 && (
+                      <div style={{fontSize: '0.8em', color: '#666'}}>
+                        {item.product.variants.length} options; restock by option
+                      </div>
+                    )}
                   </td>
                   <td>{item.product?.sku}</td>
                   <td>
@@ -365,8 +377,7 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                       >
                         👁️
                       </button> */}
-                      {canEdit && (
-                        <>
+                      {canRestock && (
                           <button 
                             className="btn-icon" 
                             onClick={() => handleRestock(item)} 
@@ -375,8 +386,26 @@ const AdminInventory = ({ userType = 'admin', userBranch = null }) => {
                           >
                             📥
                           </button>
-                       
-                        </>
+                      )}
+                      {canEdit && (
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleAdjust(item)}
+                          title="Adjust inventory"
+                          style={{ fontSize: '14px' }}
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className="btn-icon danger"
+                          onClick={() => deleteInventory(item.id)}
+                          title="Delete inventory"
+                          style={{ fontSize: '14px' }}
+                        >
+                          🗑️
+                        </button>
                       )}
                     </div>
                   </td>
@@ -448,6 +477,22 @@ const InventoryModal = ({ mode, item, onSave, onClose, onChange }) => {
 
             {mode === 'restock' ? (
               <>
+                {item.product?.variants?.length > 0 && (
+                  <div className="form-field">
+                    <label>Product option *</label>
+                    <select
+                      value={item.variant_id}
+                      onChange={(e) => onChange({ ...item, variant_id: e.target.value })}
+                    >
+                      <option value="">Select color / size / dimensions</option>
+                      {item.product.variants.map(variant => (
+                        <option key={variant.id} value={variant.id}>
+                          {[variant.color, variant.size, variant.dimensions].filter(Boolean).join(' · ')} ({variant.stock_quantity} in stock)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="form-field">
                   <label>Restock Quantity *</label>
                   <input
@@ -470,6 +515,9 @@ const InventoryModal = ({ mode, item, onSave, onClose, onChange }) => {
               </>
             ) : (
               <>
+                {item.product?.variants?.length > 0 && (
+                  <p className="small text-muted">Total stock is calculated from options. Adjust each option in product management or use Restock to add stock to one option.</p>
+                )}
                 <div className="form-field">
                   <label>Quantity in Stock *</label>
                   <input
@@ -477,6 +525,7 @@ const InventoryModal = ({ mode, item, onSave, onClose, onChange }) => {
                     min="0"
                     value={item.quantity_in_stock}
                     onChange={(e) => onChange({ ...item, quantity_in_stock: e.target.value })}
+                    disabled={item.product?.variants?.length > 0}
                   />
                 </div>
 
@@ -487,6 +536,7 @@ const InventoryModal = ({ mode, item, onSave, onClose, onChange }) => {
                     min="0"
                     value={item.quantity_reserved}
                     onChange={(e) => onChange({ ...item, quantity_reserved: e.target.value })}
+                    disabled={item.product?.variants?.length > 0}
                   />
                 </div>
 
@@ -576,7 +626,7 @@ const InventoryModal = ({ mode, item, onSave, onClose, onChange }) => {
 
         <div className="modal-footer">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={onSave}>
+          <button className="btn-primary" onClick={onSave} disabled={mode === 'restock' && item.product?.variants?.length > 0 && !item.variant_id}>
             {mode === 'restock' ? 'Restock' : 'Update'}
           </button>
         </div>

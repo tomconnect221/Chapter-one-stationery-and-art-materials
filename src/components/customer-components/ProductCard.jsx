@@ -2,12 +2,18 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../../store/cartSlice';
 import { addToWishlist } from '../../store/wishlistSlice';
+import { useNavigate } from 'react-router-dom';
 import './styles.css';
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleAddToCart = () => {
+    if (product.variants?.length > 0) {
+      navigate(`/product/${product.id}`);
+      return;
+    }
     dispatch(addToCart({
       id: product.id,
       name: product.name,
@@ -38,8 +44,8 @@ const ProductCard = ({ product }) => {
           <button onClick={handleAddToWishlist} className="wishlist-btn" title="Add to Wishlist">
             ❤️
           </button>
-          <button onClick={handleAddToCart} className="cart-btn" title="Add to Cart">
-            🛒
+          <button onClick={handleAddToCart} className="cart-btn" title={product.variants?.length ? 'Choose product options' : 'Add to Cart'}>
+            {product.variants?.length ? 'Options' : '🛒'}
           </button>
         </div>
       </div>
@@ -49,7 +55,7 @@ const ProductCard = ({ product }) => {
         <p className="product-description">{product.short_description}</p>
         
         <div className="product-price-container">
-          <span className="product-price">{formatPrice(product.price)}</span>
+          <span className="product-price">{product.variants?.length > 0 ? 'From ' : ''}{formatPrice(product.price)}</span>
           {product.sale_price && (
             <span className="product-sale-price">{formatPrice(product.sale_price)}</span>
           )}

@@ -17,13 +17,29 @@ import SingleInventoryView from '../../../components/AdminInventory/SingleInvent
 import AdminRiders from '../../../components/AdminRiders';
 import AdminSettings from '../../../components/AdminSettings';
 import AdminAccounting from '../../../components/AdminAccounting';
+import AdminDatabase from '../../../components/AdminDatabase';
 import AdminTransactions from '../../../components/AdminTransactions';
 import OrderDetails from '../../../components/AdminOrders/OrderDetails';
+import { useLocation } from 'react-router-dom';
+import { canAccessPage } from '../../../utils/permissions';
 
 const AdminDashboard = () => {  
   const { user } = useSelector(state => state.auth);
   const userType = user?.role || 'admin';
   const userBranch = user?.branch || null;
+  const location = useLocation();
+  const pageKey = location.pathname.split('/')[2];
+  const pageAccess = {
+    products: 'products',
+    categories: 'categories',
+    orders: 'orders',
+    inventory: 'inventory',
+    profile: 'profile',
+  }[pageKey];
+
+  if (userType === 'subadmin' && pageKey !== 'dashboard' && (!pageAccess || !canAccessPage(user, pageAccess))) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <DashboardLayout userType={userType}>
@@ -45,6 +61,7 @@ const AdminDashboard = () => {
         <Route path="inventory/:id" element={<SingleInventoryView userType={userType} userBranch={userBranch} />} />
         <Route path="riders" element={<AdminRiders userType={userType} userBranch={userBranch} />} />
         <Route path="accounting" element={<AdminAccounting />} />
+        <Route path="database" element={<AdminDatabase />} />
         <Route path="transactions" element={<AdminTransactions />} />
         <Route path="settings" element={<AdminSettings userType={userType} />} />
       </Routes>

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../AdminProducts/AdminProducts.css';
+import { DEFAULT_SUBADMIN_PERMISSIONS, SUBADMIN_PERMISSION_GROUPS } from '../../utils/permissions';
 
 const AdminSubAdmins = ({ userType = 'admin' }) => {
   const [subAdmins, setSubAdmins] = useState([]);
@@ -51,6 +52,7 @@ const AdminSubAdmins = ({ userType = 'admin' }) => {
           branch_id: admin.branch_id,
           branch: admin.branch ? admin.branch.name : 'Unassigned',
           is_active: admin.is_active,
+          permissions: admin.permissions,
           created_at: admin.created_at,
           updated_at: admin.updated_at,
           status: admin.is_active ? 'active' : 'inactive'
@@ -123,7 +125,8 @@ const AdminSubAdmins = ({ userType = 'admin' }) => {
       branch_id: '',
       password: '',
       password_confirmation: '',
-      is_active: true
+      is_active: true,
+      permissions: [...DEFAULT_SUBADMIN_PERMISSIONS]
     });
     setFormErrors({});
     setShowModal(true);
@@ -137,6 +140,9 @@ const AdminSubAdmins = ({ userType = 'admin' }) => {
       email: admin.email,
       branch_id: admin.branch_id,
       is_active: admin.is_active,
+      permissions: Array.isArray(admin.permissions)
+        ? admin.permissions
+        : [...DEFAULT_SUBADMIN_PERMISSIONS],
       password: '',
       password_confirmation: ''
     });
@@ -191,6 +197,9 @@ const AdminSubAdmins = ({ userType = 'admin' }) => {
       const formData = new URLSearchParams();
       formData.append('name', selectedAdmin.name);
       formData.append('email', selectedAdmin.email);
+      (selectedAdmin.permissions || []).forEach((permission) => {
+        formData.append('permissions[]', permission);
+      });
       
       if (selectedAdmin.branch_id) {
         formData.append('branch_id', selectedAdmin.branch_id);
@@ -311,7 +320,7 @@ const AdminSubAdmins = ({ userType = 'admin' }) => {
       <div className="products-header">
         <div>
           <h1>Sub Admin Management</h1>
-          <p>Manage sub admin users and assign branches</p>
+          <p>Manage branch managers, page access, and permitted actions</p>
         </div>
         {canEdit && (
           <button className="btn-primary" onClick={handleAdd}>
@@ -665,6 +674,36 @@ const SubAdminModal = ({ mode, admin, branches, onSave, onClose, onChange, error
                 <option value={false}>Inactive</option>
               </select>
             </div>
+
+            <fieldset className="form-field" style={{ gridColumn: '1 / -1', border: '1px solid #dfe3e8', padding: '16px', borderRadius: '6px' }}>
+              <legend style={{ float: 'none', width: 'auto', padding: '0 6px', fontSize: '15px', fontWeight: 700 }}>Page and action permissions</legend>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                {SUBADMIN_PERMISSION_GROUPS.map((group) => (
+                  <section key={group.page} aria-label={`${group.label} permissions`}>
+                    <strong>{group.label}</strong>
+                    <div style={{ display: 'grid', gap: '7px', marginTop: '8px' }}>
+                      {group.permissions.map(({ key, label }) => (
+                        <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400 }}>
+                          <input
+                            type="checkbox"
+                            checked={(admin.permissions || []).includes(key)}
+                            onChange={(event) => {
+                              const current = admin.permissions || [];
+                              const permissions = event.target.checked
+                                ? [...new Set([...current, key])]
+                                : current.filter((permission) => permission !== key);
+                              onChange({ ...admin, permissions });
+                            }}
+                            disabled={loading}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </fieldset>
 
             <div className="form-field">
               <label>

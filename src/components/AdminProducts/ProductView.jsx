@@ -135,7 +135,7 @@ const ProductView = ({ product, onBack, onEdit, canEdit }) => {
           <div className="pv-card pv-price-card">
             <div className="pv-price-section">
               <div className="pv-current-price">
-                <span className="pv-price-label">Selling Price</span>
+                <span className="pv-price-label">{product.variants?.length > 0 ? 'Starting Price' : 'Selling Price'}</span>
                 <span className="pv-price-value">{formatCurrency(product.price)}</span>
               </div>
               <div className="pv-price-others">
@@ -160,6 +160,40 @@ const ProductView = ({ product, onBack, onEdit, canEdit }) => {
             </div>
           </div>
 
+          {product.variants?.length > 0 && (
+            <div className="pv-card">
+              <div className="pv-card-header">
+                <h3>Purchasable options ({product.variants.length})</h3>
+              </div>
+              <div className="pv-card-body" style={{ overflowX: 'auto' }}>
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Color</th>
+                      <th>Size</th>
+                      <th>Dimensions</th>
+                      <th>SKU</th>
+                      <th>Price</th>
+                      <th>Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.variants.map(variant => (
+                      <tr key={variant.id}>
+                        <td>{variant.color || '-'}</td>
+                        <td>{variant.size || '-'}</td>
+                        <td>{variant.dimensions || '-'}</td>
+                        <td>{variant.sku || '-'}</td>
+                        <td>{formatCurrency(variant.price)}</td>
+                        <td>{variant.stock_quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Specifications Card */}
           <div className="pv-card">
             <div className="pv-card-header">
@@ -179,7 +213,7 @@ const ProductView = ({ product, onBack, onEdit, canEdit }) => {
                     <span className="pv-spec-value">{product.model}</span>
                   </div>
                 )}
-{(product.colors && product.colors.length > 0) && (
+{(!product.variants?.length && product.colors && product.colors.length > 0) && (
                   <div className="pv-spec-item">
                     <span className="pv-spec-label">Colors</span>
                     <span className="pv-spec-value">
@@ -193,7 +227,7 @@ const ProductView = ({ product, onBack, onEdit, canEdit }) => {
                     </span>
                   </div>
                 )}
-                {product.size && (
+                {!product.variants?.length && product.size && (
                   <div className="pv-spec-item">
                     <span className="pv-spec-label">Size</span>
                     <span className="pv-spec-value">{product.size}</span>
@@ -205,7 +239,7 @@ const ProductView = ({ product, onBack, onEdit, canEdit }) => {
                     <span className="pv-spec-value">{product.weight} kg</span>
                   </div>
                 )}
-                {product.dimensions && (
+                {!product.variants?.length && product.dimensions && (
                   <div className="pv-spec-item">
                     <span className="pv-spec-label">Dimensions</span>
                     <span className="pv-spec-value">{product.dimensions}</span>

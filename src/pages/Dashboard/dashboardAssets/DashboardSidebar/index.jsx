@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../../../store/authSlice';
 import LogoutModal from '../../../../components/LogoutModal';
+import { canAccessPage } from '../../../../utils/permissions';
 import './DashboardSidebar.css';
 
 const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => {
@@ -29,18 +30,18 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
       { path: '/admin/riders', icon: '🏍️', label: 'Dispatch Riders' },
       { path: '/admin/subadmins', icon: '👨‍💼', label: 'Sub Admins' },
       { path: '/admin/accounting', icon: '📊', label: 'Accounting' },
+      { path: '/admin/database', icon: '🗄️', label: 'Database backup' },
       { path: '/admin/transactions', icon: '💳', label: 'Transactions' },
       { path: '/admin/profile', icon: '👤', label: 'Profile' },
       { path: '/admin/settings', icon: '⚙️', label: 'Settings' }
     ],
     subadmin: [
-      { path: '/admin/dashboard', icon: '🏠', label: 'Dashboard' },
-      { path: '/admin/products', icon: '📦', label: 'Products' },
-      { path: '/admin/categories', icon: '📁', label: 'Categories' },
-      { path: '/admin/orders', icon: '✅', label: 'Orders' },
-      { path: '/admin/inventory', icon: '📊', label: 'Inventory' },
-      { path: '/admin/profile', icon: '👤', label: 'Profile' },
-      { path: '/admin/settings', icon: '⚙️', label: 'Settings' }
+      { path: '/admin/dashboard', page: 'dashboard', icon: '🏠', label: 'Dashboard' },
+      { path: '/admin/products', page: 'products', icon: '📦', label: 'Products' },
+      { path: '/admin/categories', page: 'categories', icon: '📁', label: 'Categories' },
+      { path: '/admin/orders', page: 'orders', icon: '✅', label: 'Orders' },
+      { path: '/admin/inventory', page: 'inventory', icon: '📊', label: 'Inventory' },
+      { path: '/admin/profile', page: 'profile', icon: '👤', label: 'Profile' },
     ],
     rider: [
       { path: '/dispatch/dashboard', icon: '🏠', label: 'Dashboard' },
@@ -92,7 +93,9 @@ const DashboardSidebar = ({ userType, isOpen, isMobileOpen, onCloseMobile }) => 
     return location.pathname === path;
   };
 
-  const currentMenuItems = menuItems[userType] || [];
+  const currentMenuItems = (menuItems[userType] || []).filter((item) =>
+    !item.page || canAccessPage(user, item.page)
+  );
 
   return (
     <>

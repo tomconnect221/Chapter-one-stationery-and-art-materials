@@ -289,7 +289,16 @@ const AccountDetails = ({ user, onUpdate }) => {
             {/* Profile Information Tab */}
             {activeTab === 'profile' && (
               <div className="tab-pane active">
-                <div className="form-sectio ">
+                <div className="form-section">
+                  <div className="profile-avatar-section">
+                    <div className="avatar-circle">
+                      {profileForm.name ? profileForm.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div className="avatar-info">
+                      <h3>{profileForm.name || 'Your Profile'}</h3>
+                      <p>Update your personal information and details</p>
+                    </div>
+                  </div>
                   <form className="account-form " onSubmit={(e) => e.preventDefault()}>
                     <div className="form-grid p-0">
                       <div className="form-group mb-1">
@@ -439,7 +448,7 @@ const AccountDetails = ({ user, onUpdate }) => {
             {/* Password Tab */}
             {activeTab === 'password' && (
               <div className="tab-pane active">
-                <div className="form-sectio">
+                <div className="form-section">
                   <form className="account-form" onSubmit={(e) => e.preventDefault()}>
                     <div className="form-grid p-0">
                       <div className="form-group mb-1 full-width">

@@ -201,6 +201,11 @@ export default function PaymentConfirmation() {
                                         <div key={item.id} className="order-item">
                                             <div className="item-info">
                                                 <span className="item-name">{item.product.name}</span>
+                                                {item.variant_options && (
+                                                    <span className="item-meta">
+                                                        {Object.entries(item.variant_options).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(' · ')}
+                                                    </span>
+                                                )}
                                                 <span className="item-meta">Qty: {item.quantity} × {formatNumber(item.unit_price)}</span>
                                             </div>
                                             <span className="item-total">{formatNumber(item.total_price)}</span>

@@ -287,8 +287,12 @@ const PromoProducts = () => {
 
     // Get unique values for filters from products
     const allBrands = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
-    const allColors = Array.from(new Set(products.map(p => p.color).filter(Boolean)));
-    const allSizes = Array.from(new Set(products.map(p => p.size).filter(Boolean)));
+    const allColors = Array.from(new Set(products.flatMap(product =>
+        product.variants?.length ? product.variants.map(variant => variant.color) : [product.color]
+    ).filter(Boolean)));
+    const allSizes = Array.from(new Set(products.flatMap(product =>
+        product.variants?.length ? product.variants.map(variant => variant.size) : [product.size]
+    ).filter(Boolean)));
     
     // Price range from products
     const prices = products.map(p => parseFloat(p.price));
@@ -345,12 +349,16 @@ const PromoProducts = () => {
         
         // Color filter
         if (selectedColors.length > 0) {
-            filtered = filtered.filter(p => p.color && selectedColors.includes(p.color));
+            filtered = filtered.filter(product => product.variants?.length
+                ? product.variants.some(variant => selectedColors.includes(variant.color))
+                : product.color && selectedColors.includes(product.color));
         }
         
         // Size filter
         if (selectedSizes.length > 0) {
-            filtered = filtered.filter(p => p.size && selectedSizes.includes(p.size));
+            filtered = filtered.filter(product => product.variants?.length
+                ? product.variants.some(variant => selectedSizes.includes(variant.size))
+                : product.size && selectedSizes.includes(product.size));
         }
         
         // Price filter
@@ -561,20 +569,21 @@ const PromoProducts = () => {
                                             <label style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Color</label>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                                 {allColors.map(color => (
-                                                    <div
+                                                    <button
+                                                        type="button"
                                                         key={color}
                                                         onClick={() => toggleColor(color)}
+                                                        aria-pressed={selectedColors.includes(color)}
                                                         style={{
-                                                            width: '32px',
-                                                            height: '32px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: color,
+                                                            padding: '6px 10px',
+                                                            borderRadius: '4px',
+                                                            backgroundColor: selectedColors.includes(color) ? '#fef3e7' : '#fff',
                                                             border: selectedColors.includes(color) ? '3px solid #ff7b00' : '2px solid #ddd',
                                                             cursor: 'pointer',
-                                                            boxShadow: selectedColors.includes(color) ? '0 0 0 2px #fff, 0 0 0 4px #ff7b00' : 'none'
+                                                            color: '#333',
+                                                            fontSize: '13px'
                                                         }}
-                                                        title={color}
-                                                    />
+                                                    >{color}</button>
                                                 ))}
                                             </div>
                                         </div>
@@ -734,19 +743,21 @@ const PromoProducts = () => {
                                             <label style={{ fontSize: '13px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Color</label>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                                 {allColors.map(color => (
-                                                    <div
+                                                    <button
+                                                        type="button"
                                                         key={color}
                                                         onClick={() => toggleColor(color)}
+                                                        aria-pressed={selectedColors.includes(color)}
                                                         style={{
-                                                            width: '28px',
-                                                            height: '28px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: color,
+                                                            padding: '5px 9px',
+                                                            borderRadius: '4px',
+                                                            backgroundColor: selectedColors.includes(color) ? '#fef3e7' : '#fff',
                                                             border: selectedColors.includes(color) ? '2px solid #ff7b00' : '1px solid #ddd',
-                                                            cursor: 'pointer'
+                                                            cursor: 'pointer',
+                                                            color: '#333',
+                                                            fontSize: '12px'
                                                         }}
-                                                        title={color}
-                                                    />
+                                                    >{color}</button>
                                                 ))}
                                             </div>
                                         </div>

@@ -4,10 +4,12 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 import { useDropzone } from 'react-dropzone';
 import '../AdminProducts/AdminProducts.css';
 import ProductView from './ProductView';
 import ProductForm from './ProductForm';
+import { hasPermission } from '../../utils/permissions';
 
 const AdminProducts = ({ userType = 'admin' }) => {
   const [products, setProducts] = useState([]);
@@ -100,6 +102,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
           category_id: product.category_id,
           branch_id: product.branch_id,
           is_active: product.is_active,
+          variants: product.variants || [],
           created_at: product.created_at,
           updated_at: product.updated_at,
           category: product.category,
@@ -183,7 +186,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
     }
   };
 
-  const canEdit = userType === 'admin';
+  const canCreate = hasPermission(user, 'products.create');
+  const canEdit = hasPermission(user, 'products.update');
+  const canDelete = hasPermission(user, 'products.delete');
 
 
 
@@ -205,6 +210,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       dimensions: '',
       color: '',
       size: '',
+      variants: [],
       brand: '',
       model: '',
       warranty_period: '',
@@ -251,6 +257,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       dimensions: product.dimensions,
       color: product.color || (Array.isArray(product.colors) && product.colors.length > 0 ? product.colors[0] : null),
       size: product.size,
+      variants: product.variants || [],
       brand: product.brand,
       model: product.model,
       warranty_period: product.warranty_period,
@@ -341,6 +348,15 @@ const AdminProducts = ({ userType = 'admin' }) => {
       }
 
       const formData = new FormData();
+      const variants = (selectedProduct.variants || []).filter(variant =>
+        variant.color || variant.size || variant.dimensions
+      );
+      const basePrice = variants.length
+        ? Math.min(...variants.map(variant => Number(variant.price) || 0))
+        : selectedProduct.price;
+      const totalStock = variants.length
+        ? variants.reduce((total, variant) => total + (Number(variant.stock_quantity) || 0), 0)
+        : selectedProduct.stock_quantity;
 
       // Append all required fields
       const appendIfNotEmpty = (formData, key, value) => {
@@ -352,10 +368,10 @@ const AdminProducts = ({ userType = 'admin' }) => {
       appendIfNotEmpty(formData, 'name', selectedProduct.name);
       appendIfNotEmpty(formData, 'description', selectedProduct.description);
       appendIfNotEmpty(formData, 'short_description', selectedProduct.short_description);
-      appendIfNotEmpty(formData, 'price', selectedProduct.price);
+      appendIfNotEmpty(formData, 'price', basePrice);
       appendIfNotEmpty(formData, 'cost_price', selectedProduct.cost_price);
       appendIfNotEmpty(formData, 'sale_price', selectedProduct.sale_price);
-      appendIfNotEmpty(formData, 'stock_quantity', selectedProduct.stock_quantity);
+      appendIfNotEmpty(formData, 'stock_quantity', totalStock);
       appendIfNotEmpty(formData, 'min_stock_level', selectedProduct.min_stock_level);
       appendIfNotEmpty(formData, 'sku', selectedProduct.sku);
       appendIfNotEmpty(formData, 'barcode', selectedProduct.barcode);
@@ -378,6 +394,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       appendIfNotEmpty(formData, 'category_id', selectedProduct.category_id);
       appendIfNotEmpty(formData, 'branch_id', selectedProduct.branch_id);
       appendIfNotEmpty(formData, 'is_active', selectedProduct.is_active ? '1' : '0');
+      formData.append('variants', JSON.stringify(variants));
 
       // Append tags as array
       if (selectedProduct.tags && selectedProduct.tags.length > 0) {
@@ -398,6 +415,13 @@ const AdminProducts = ({ userType = 'admin' }) => {
             formData.append('images[]', image);
           }
         });
+      }
+
+      if (modalMode === 'edit') {
+        const existingImages = (selectedProduct.images || []).filter(
+          image => typeof image === 'string'
+        );
+        formData.append('existing_images', JSON.stringify(existingImages));
       }
 
       let response;
@@ -445,8 +469,19 @@ const AdminProducts = ({ userType = 'admin' }) => {
         const responseData = error.response.data;
 
         if (responseData.errors) {
-          setFormErrors(responseData.errors);
-          const errorMessage = responseData.message || 'Validation failed';
+          const validationErrors = { ...responseData.errors };
+          const indexedImageError = Object.entries(validationErrors).find(
+            ([field, messages]) => /^images\.\d+$/.test(field) && Array.isArray(messages) && messages.length > 0
+          )?.[1];
+          if (!validationErrors.images && indexedImageError) {
+            validationErrors.images = indexedImageError;
+          }
+
+          setFormErrors(validationErrors);
+          const firstValidationMessage = Object.values(responseData.errors)
+            .flatMap(messages => Array.isArray(messages) ? messages : [messages])
+            .find(message => typeof message === 'string' && message.trim());
+          const errorMessage = firstValidationMessage || responseData.message || 'Validation failed';
           toast.error(errorMessage);
         } else {
           const errorMessage = responseData.message || 'An error occurred';
@@ -475,24 +510,29 @@ const AdminProducts = ({ userType = 'admin' }) => {
   };
 
   const handleImagesChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const newImages = [...(selectedProduct.images || []), ...files];
-      setSelectedProduct({ ...selectedProduct, images: newImages });
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-      // Create previews for new images
-      const newPreviews = [];
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          newPreviews.push(e.target.result);
-          if (newPreviews.length === files.length) {
-            setImagesPreviews([...imagesPreviews, ...newPreviews]);
-          }
-        };
-        reader.readAsDataURL(file);
+    setSelectedProduct((prevProduct) => ({
+      ...prevProduct,
+      images: [...(prevProduct?.images || []), ...files]
+    }));
+
+    const fileReaders = files.map(file => new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => resolve(event.target.result);
+      reader.readAsDataURL(file);
+    }));
+
+    Promise.all(fileReaders)
+      .then((newPreviews) => {
+        setImagesPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
+      })
+      .catch(() => {
+        toast.error('Unable to preview one or more selected images.');
       });
-    }
+
+    e.target.value = '';
   };
 
   const handleRemoveImage = () => {
@@ -501,14 +541,13 @@ const AdminProducts = ({ userType = 'admin' }) => {
   };
 
   const handleRemoveAdditionalImage = (index) => {
-    const newImages = [...selectedProduct.images];
-    const newPreviews = [...imagesPreviews];
-
-    newImages.splice(index, 1);
-    newPreviews.splice(index, 1);
-
-    setSelectedProduct({ ...selectedProduct, images: newImages });
-    setImagesPreviews(newPreviews);
+    setSelectedProduct((prevProduct) => ({
+      ...prevProduct,
+      images: (prevProduct?.images || []).filter((_, imageIndex) => imageIndex !== index)
+    }));
+    setImagesPreviews((prevPreviews) =>
+      prevPreviews.filter((_, imageIndex) => imageIndex !== index)
+    );
   };
 
   const handleTagChange = (e) => {
@@ -574,7 +613,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
       'weight', 'dimensions', 'color', 'size', 'brand', 'model', 
       'warranty_period', 'tax_rate', 'meta_title', 'meta_description', 
       'meta_keywords', 'category_id', 'branch_id', 'is_active', 
-      'is_featured', 'is_digital', 'requires_shipping'
+      'is_featured', 'is_digital', 'requires_shipping', 'variants', 'image_filename'
     ];
     const ws = XLSX.utils.json_to_sheet([headers.reduce((acc, curr) => ({ ...acc, [curr]: '' }), {})], { header: headers, skipHeader: true });
     XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
@@ -590,72 +629,150 @@ const AdminProducts = ({ userType = 'admin' }) => {
     setShowBulkModal(true);
   };
 
-  const processBulkUpload = async (file) => {
+  const processBulkUpload = async (file, imageArchive) => {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        
-        setIsBulkUploading(true);
-        setBulkUploadStats({ total: data.length, success: 0, failed: 0, failedRows: [] });
-        
-        let successCount = 0;
-        let failCount = 0;
-        let failedRowsArr = [];
+    try {
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('The Excel file must be smaller than 10 MB.');
+      }
+      if (imageArchive && imageArchive.size > 100 * 1024 * 1024) {
+        throw new Error('The image ZIP must be smaller than 100 MB.');
+      }
 
-        for (let i = 0; i < data.length; i++) {
-          const item = data[i];
-          
+      const [workbookBuffer, zip] = await Promise.all([
+        file.arrayBuffer(),
+        imageArchive ? JSZip.loadAsync(imageArchive) : Promise.resolve(null)
+      ]);
+      const workbook = XLSX.read(workbookBuffer, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      if (data.length === 0) {
+        throw new Error('The Excel file does not contain any product rows.');
+      }
+
+      const imageEntries = new Map();
+      const duplicateImageNames = new Set();
+      if (zip) {
+        Object.values(zip.files).forEach((entry) => {
+          if (entry.dir || !/\.(jpe?g|png|webp)$/i.test(entry.name)) return;
+          const filename = entry.name.split(/[\\/]/).pop().toLowerCase();
+          if (imageEntries.has(filename)) {
+            duplicateImageNames.add(filename);
+          } else {
+            imageEntries.set(filename, entry);
+          }
+        });
+      }
+
+      setIsBulkUploading(true);
+      setBulkUploadStats({ total: data.length, success: 0, failed: 0, failedRows: [] });
+
+      let successCount = 0;
+      let failCount = 0;
+      const failedRowsArr = [];
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      const imageMimeTypes = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp'
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+
+        try {
           const formData = new FormData();
-          Object.keys(item).forEach(key => {
-            if(item[key] !== undefined && item[key] !== null && String(item[key]).trim() !== '') {
-              formData.append(key, String(item[key]));
+          Object.entries(item).forEach(([key, value]) => {
+            if (key !== 'image_filename' && value !== undefined && value !== null && String(value).trim() !== '') {
+              formData.append(key, String(value));
             }
           });
-          
-          try {
-            const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/products` : `${import.meta.env.VITE_API_URL}/api/subadmin/products`;
-            await axios.post(URL, formData, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data'
-              }
-            });
-            successCount++;
-          } catch (err) {
-            failCount++;
-            failedRowsArr.push({
-              index: i + 1, // Add 1 because Excel rows usually start at 2 (1 is header)
-              name: item.name || 'Unknown',
-              reason: err.response?.data?.message || 'Failed to upload'
-            });
+
+          const requestedImage = String(item.image_filename || '').trim();
+          if (requestedImage && !zip) {
+            throw new Error('Select an image ZIP to use the image_filename column.');
           }
 
-          // Update progress after each item
-          setBulkUploadProgress(((i + 1) / data.length) * 100);
-          setBulkUploadStats({ 
-            total: data.length, 
-            success: successCount, 
-            failed: failCount, 
-            failedRows: failedRowsArr 
+          let matchingNames = [];
+          if (requestedImage) {
+            matchingNames = [requestedImage.split(/[\\/]/).pop().toLowerCase()];
+          } else if (item.sku !== undefined && item.sku !== null && String(item.sku).trim()) {
+            const sku = String(item.sku).trim();
+            matchingNames = imageExtensions.map(extension => `${sku}.${extension}`.toLowerCase());
+          }
+
+          const matches = matchingNames
+            .filter(name => imageEntries.has(name))
+            .map(name => ({ name, entry: imageEntries.get(name) }));
+          const uniqueMatches = [...new Map(matches.map(match => [match.entry.name, match])).values()];
+
+          if (uniqueMatches.some(match => duplicateImageNames.has(match.name))) {
+            throw new Error(`More than one image named "${requestedImage || uniqueMatches[0].name}" exists in the ZIP.`);
+          }
+          if (requestedImage && uniqueMatches.length === 0) {
+            throw new Error(`Image "${requestedImage}" was not found in the ZIP.`);
+          }
+          if (uniqueMatches.length > 1) {
+            throw new Error(`More than one image matches SKU "${item.sku}". Set image_filename to choose one.`);
+          }
+
+          if (uniqueMatches.length === 1) {
+            const { entry } = uniqueMatches[0];
+            const imageBlob = await entry.async('blob');
+            if (imageBlob.size > 2 * 1024 * 1024) {
+              throw new Error(`Image "${entry.name}" exceeds the 2 MB limit.`);
+            }
+            const filename = entry.name.split(/[\\/]/).pop();
+            const extension = filename.split('.').pop().toLowerCase();
+            const imageFile = new File([imageBlob], filename, { type: imageMimeTypes[extension] });
+            formData.append('image', imageFile);
+          }
+
+          const URL = user.role === 'admin' ? `${import.meta.env.VITE_API_URL}/api/admin/products` : `${import.meta.env.VITE_API_URL}/api/subadmin/products`;
+          await axios.post(URL, formData, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          successCount++;
+        } catch (err) {
+          failCount++;
+          const responseData = err.response?.data;
+          const validationErrors = responseData?.errors;
+          const validationMessage = validationErrors && typeof validationErrors === 'object'
+            ? Object.entries(validationErrors)
+              .flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages])
+                .filter(Boolean)
+                .map(message => `${field}: ${message}`))
+              .join('; ')
+            : '';
+          failedRowsArr.push({
+            index: i + 1,
+            name: item.name || 'Unknown',
+            reason: validationMessage || responseData?.message || err.message || 'Failed to upload'
           });
         }
-        
-        toast.success(`Bulk upload completed! ${successCount} added, ${failCount} failed.`);
-        fetchProducts();
-      } catch (err) {
-        toast.error('Failed to parse Excel file');
-      } finally {
-        setIsBulkUploading(false);
+
+        setBulkUploadProgress(((i + 1) / data.length) * 100);
+        setBulkUploadStats({
+          total: data.length,
+          success: successCount,
+          failed: failCount,
+          failedRows: [...failedRowsArr]
+        });
       }
-    };
-    reader.readAsBinaryString(file);
+
+      toast.success(`Bulk upload completed! ${successCount} added, ${failCount} failed.`);
+      fetchProducts();
+    } catch (err) {
+      toast.error(err.message || 'Failed to parse Excel or image ZIP file');
+    } finally {
+      setIsBulkUploading(false);
+    }
   };
 
   const handleDownloadAllProducts = async () => {
@@ -698,7 +815,8 @@ const AdminProducts = ({ userType = 'admin' }) => {
           is_active: p.is_active ? 1 : 0,
           is_featured: p.is_featured ? 1 : 0,
           is_digital: p.is_digital ? 1 : 0,
-          requires_shipping: p.requires_shipping ? 1 : 0
+          requires_shipping: p.requires_shipping ? 1 : 0,
+          variants: JSON.stringify(p.variants || [])
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataForExcel);
@@ -806,7 +924,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
           <h1>Products Management</h1>
           <p>Manage store products and inventory</p>
         </div>
-        {canEdit && (
+        {canCreate && (
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="btn-success btn" onClick={handleDownloadTemplate} style={{ padding: '8px 12px', }}>
               📥 Template
@@ -933,7 +1051,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
                     <div>
                       <strong>{product.name}</strong>
                       <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                        {product.short_description}
+                        {product.variants?.length > 0
+                          ? `${product.variants.length} purchasable options${product.short_description ? ` · ${product.short_description}` : ''}`
+                          : product.short_description}
                       </div>
                     </div>
                   </td>
@@ -941,7 +1061,7 @@ const AdminProducts = ({ userType = 'admin' }) => {
                     <code>{product.sku}</code>
                   </td>
                   <td>
-                    <strong>₦{parseFloat(product.price).toLocaleString()}</strong>
+                    <strong>{product.variants?.length > 0 ? 'From ' : ''}₦{parseFloat(product.price).toLocaleString()}</strong>
                   </td>
                   <td>
                     <span className={`stock-badge ${product.stock_quantity > 10 ? 'good' : product.stock_quantity > 0 ? 'low' : 'out'}`}>
@@ -990,7 +1110,6 @@ const AdminProducts = ({ userType = 'admin' }) => {
                         👁️
                       </button>
                       {canEdit && (
-                        <>
                           <button
                             className="btn-icon"
                             onClick={() => handleEdit(product)}
@@ -999,7 +1118,9 @@ const AdminProducts = ({ userType = 'admin' }) => {
                           >
                             ✏️
                           </button>
-                          <button
+                          )}
+                          {canDelete && (
+                            <button
                             className="btn-icon danger"
                             onClick={() => handleDeleteClick(product)}
                             title="Delete"
@@ -1011,7 +1132,6 @@ const AdminProducts = ({ userType = 'admin' }) => {
                               '🗑️'
                             )}
                           </button>
-                        </>
                       )}
                     </div>
                   </td>
@@ -1597,6 +1717,7 @@ const ProductModal = ({
             {/* Additional Images */}
             <div className="form-field full-width">
               <label>Additional Images</label>
+              <small className="field-hint">Each additional image must be 2 MB or smaller.</small>
               <div className="image-upload-container">
                 <div className="image-upload-placeholder">
                   <span>📷</span>
@@ -1724,20 +1845,37 @@ const ProductModal = ({
 export default AdminProducts;
 
 const BulkUploadModal = ({ show, onClose, onUpload, progress, stats, isUploading, categories, branches }) => {
-  if (!show) return null;
+  const [workbookFile, setWorkbookFile] = useState(null);
+  const [imageArchive, setImageArchive] = useState(null);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  useEffect(() => {
+    if (!show) {
+      setWorkbookFile(null);
+      setImageArchive(null);
+    }
+  }, [show]);
+
+  const workbookDropzone = useDropzone({
     onDrop: (acceptedFiles) => {
-      if (!isUploading && acceptedFiles.length > 0) {
-        onUpload(acceptedFiles[0]);
-      }
+      if (!isUploading && acceptedFiles.length > 0) setWorkbookFile(acceptedFiles[0]);
     },
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'application/vnd.ms-excel': ['.xls']
     },
+    disabled: isUploading,
     multiple: false
   });
+  const imageDropzone = useDropzone({
+    onDrop: (acceptedFiles) => {
+      if (!isUploading && acceptedFiles.length > 0) setImageArchive(acceptedFiles[0]);
+    },
+    accept: { 'application/zip': ['.zip'] },
+    disabled: isUploading,
+    multiple: false
+  });
+
+  if (!show) return null;
 
   return (
     <div className="modal-overlay jumia-modal">
@@ -1797,29 +1935,51 @@ const BulkUploadModal = ({ show, onClose, onUpload, progress, stats, isUploading
                 </div>
               </div>
 
-              <div 
-                {...getRootProps()} 
-              style={{
-                border: `2px dashed ${isDragActive ? '#4caf50' : '#cccccc'}`,
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                <div
+                  {...workbookDropzone.getRootProps()}
+                  style={{
+                border: `2px dashed ${workbookDropzone.isDragActive ? '#4caf50' : '#cccccc'}`,
                 padding: '40px',
                 textAlign: 'center',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                backgroundColor: isDragActive ? '#f1f8e9' : '#fafafa',
+                backgroundColor: workbookDropzone.isDragActive ? '#f1f8e9' : '#fafafa',
                 transition: 'all 0.3s ease'
               }}
-            >
-              <input {...getInputProps()} />
-              <div style={{ fontSize: '40px', marginBottom: '10px' }}>📥</div>
-              {isDragActive ? (
-                <p>Drop the Excel file here...</p>
-              ) : (
-                <p>Drag and drop an Excel file here, or click to select a file</p>
-              )}
-              <div style={{ fontSize: '12px', color: '#888', marginTop: '10px' }}>
-                Only .xlsx and .xls files are supported
+                >
+                  <input {...workbookDropzone.getInputProps()} />
+                  <div style={{ fontSize: '30px', marginBottom: '10px' }}>📊</div>
+                  <strong>Product spreadsheet</strong>
+                  <p>{workbookFile?.name || (workbookDropzone.isDragActive ? 'Drop the spreadsheet here' : 'Choose or drop an .xlsx or .xls file')}</p>
+                  <div style={{ fontSize: '12px', color: '#888' }}>Required, maximum 10 MB</div>
+                </div>
+                <div
+                  {...imageDropzone.getRootProps()}
+                  style={{
+                    border: `2px dashed ${imageDropzone.isDragActive ? '#4caf50' : '#cccccc'}`,
+                    padding: '40px',
+                    textAlign: 'center',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    backgroundColor: imageDropzone.isDragActive ? '#f1f8e9' : '#fafafa',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <input {...imageDropzone.getInputProps()} />
+                  <div style={{ fontSize: '30px', marginBottom: '10px' }}>🖼️</div>
+                  <strong>Product images (optional)</strong>
+                  <p>{imageArchive?.name || (imageDropzone.isDragActive ? 'Drop the ZIP here' : 'Choose or drop a .zip image archive')}</p>
+                  <div style={{ fontSize: '12px', color: '#888' }}>Match by image_filename, or by SKU filename; ZIP up to 100 MB</div>
+                </div>
               </div>
-            </div>
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
+                Add an optional image_filename column (for example, ART-104.jpg). If it is blank, images named SKU.jpg, SKU.png, SKU.jpeg, or SKU.webp are matched automatically. Each image must be 2 MB or smaller.
+              </div>
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                For multiple options, put a JSON array in the variants cell. Each entry supports color, size, dimensions, sku, price, and stock_quantity.
+                Example: <code>{'[{"color":"Sky blue","size":"A4","dimensions":"20 x 30 cm","price":12.5,"stock_quantity":8}]'}</code>
+              </div>
             </>
           )}
 
@@ -1867,7 +2027,14 @@ const BulkUploadModal = ({ show, onClose, onUpload, progress, stats, isUploading
           {progress === 100 || (stats.total > 0 && !isUploading) ? (
             <button className="btn-primary" onClick={onClose}>Done</button>
           ) : (
-            <button className="btn-secondary" onClick={onClose} disabled={isUploading}>Cancel</button>
+            <>
+              <button className="btn-secondary" onClick={onClose} disabled={isUploading}>Cancel</button>
+              {!isUploading && stats.total === 0 && (
+                <button className="btn-primary" onClick={() => onUpload(workbookFile, imageArchive)} disabled={!workbookFile}>
+                  Start Import
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

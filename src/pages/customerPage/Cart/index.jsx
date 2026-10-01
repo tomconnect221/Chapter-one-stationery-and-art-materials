@@ -23,6 +23,15 @@ export default function Cart() {
     return Number.isNaN(n) ? 0 : n;
   };
 
+  const getProductImage = (product) => {
+    const image = product?.image || product?.images?.[0] || '/images/placeholder-product.png';
+    if (!image) return '/images/placeholder-product.png';
+    if (image.startsWith('http://') || image.startsWith('https://')) return image;
+    if (image.startsWith('/storage/')) return `${import.meta.env.VITE_API_URL}${image}`;
+    if (image.startsWith('/')) return `${import.meta.env.VITE_API_URL}${image}`;
+    return `${import.meta.env.VITE_API_URL}/${image.replace(/^\/+/, '')}`;
+  };
+
   const subtotal = useMemo(() => cart.reduce((s, i) => s + parsePrice(i.product.price) * (i.qty || 0), 0), [cart]);
 
   const formatNGN = (v) => {
@@ -45,12 +54,19 @@ export default function Cart() {
 
   const handleQtyChange = (id, qty) => {
     if (qty < 1) return;
+    const item = cart.find(cartItem => cartItem.id === id);
+    const stock = Number(item?.product.stock_quantity);
+    const hasSelectedVariant = Boolean(item?.product.variant_id);
+    if ((hasSelectedVariant && qty > stock) || (!hasSelectedVariant && stock > 0 && qty > stock)) {
+      toast.error(`Only ${stock} of this option are available.`);
+      return;
+    }
     dispatch(setQty({ id, qty }));
   };
 
   const handleIncrement = (id) => {
     const item = cart.find(i => i.id === id);
-    if (item) dispatch(setQty({ id, qty: item.qty + 1 }));
+    if (item) handleQtyChange(id, item.qty + 1);
   };
 
   const handleDecrement = (id) => {
@@ -110,7 +126,7 @@ export default function Cart() {
                   {cart.map(item => (
                     <div key={item.id} className="cart-item-card">
                       <div className="cart-item-image">
-                        <img src={`${import.meta.env.VITE_API_URL}/`+item.product.image} alt={item.product.title || item.product.name} />
+                        <img src={getProductImage(item.product)} alt={item.product.title || item.product.name} />
                       </div>
 
                       <div className="cart-item-details">
@@ -118,7 +134,9 @@ export default function Cart() {
                           <h4 className="cart-item-title" style={{fontSize:'13px'}}>{item.product.title || item.product.name}</h4>
                           <p className="cart-item-brand">{item.product.brand || ''}</p>
                           <p className="cart-item-specs">
-                            {item.product.specs ? Object.keys(item.product.specs).map(k => `${k}: ${item.product.specs[k]}`).join(' • ') : ''}
+                            {item.product.variant_options
+                              ? Object.entries(item.product.variant_options).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(' • ')
+                              : item.product.specs ? Object.keys(item.product.specs).map(k => `${k}: ${item.product.specs[k]}`).join(' • ') : ''}
                           </p>
                         </div>
 

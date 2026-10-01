@@ -691,6 +691,11 @@ const AdminMainDashboard = () => {
                       <td style={{ padding: '16px 0', fontSize: '14px', color: '#1f2937' }}>
                         <div>
                           <div>{firstProduct}</div>
+                          {order.order_items?.[0]?.variant_options && (
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {Object.entries(order.order_items[0].variant_options).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(' · ')}
+                            </div>
+                          )}
                           {itemCount > 1 && (
                             <div style={{ fontSize: '12px', color: '#6b7280' }}>+{itemCount - 1} more items</div>
                           )}

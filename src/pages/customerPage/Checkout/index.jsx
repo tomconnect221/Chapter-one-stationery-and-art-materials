@@ -55,6 +55,15 @@ export default function Checkout() {
   const [fullPageLoading, setFullPageLoading] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState(null);
 
+  const getProductImage = (product) => {
+    const image = product?.image || product?.images?.[0] || '/images/placeholder-product.png';
+    if (!image) return '/images/placeholder-product.png';
+    if (image.startsWith('http://') || image.startsWith('https://')) return image;
+    if (image.startsWith('/storage/')) return `${import.meta.env.VITE_API_URL}${image}`;
+    if (image.startsWith('/')) return `${import.meta.env.VITE_API_URL}${image}`;
+    return `${import.meta.env.VITE_API_URL}/${image.replace(/^\/+/, '')}`;
+  };
+
   // Calculate total weight from cart
   const totalWeight = useMemo(() => getTotalWeight(cart), [cart]);
 
@@ -273,6 +282,7 @@ setDeliveryFee(0);
     try {
       const items = cart.map(i => ({
         product_id: i.product.id,
+        ...(i.product.variant_id ? { variant_id: i.product.variant_id } : {}),
         quantity: i.qty
       }));
 
@@ -553,7 +563,7 @@ setDeliveryFee(0);
                     <div key={i.id} className="order-item w-100 ">
                       <div className="item-image " style={{ height: '40px', width: '40px' }}>
                         <img
-                          src={`${import.meta.env.VITE_API_URL}/` + i.product.image}
+                          src={getProductImage(i.product)}
                           alt={i.product.title || i.product.name}
                         />
                       </div>

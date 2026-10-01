@@ -4,9 +4,7 @@ import './ProductView.css';
 const ProductForm = ({
   mode,
   product,
-  color = '',
   onChange,
-  onColorChange,
   onImageChange,
   onImagesChange,
   onRemoveImage,
@@ -21,6 +19,26 @@ const ProductForm = ({
   onSave,
   onCancel
 }) => {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+
+  const updateVariants = (nextVariants) => {
+    const configuredVariants = nextVariants.filter(variant =>
+      variant.color || variant.size || variant.dimensions
+    );
+    const nextProduct = { ...product, variants: nextVariants };
+    if (configuredVariants.length > 0) {
+      nextProduct.price = Math.min(...configuredVariants.map(variant => Number(variant.price) || 0));
+      nextProduct.stock_quantity = configuredVariants.reduce((total, variant) => total + (Number(variant.stock_quantity) || 0), 0);
+    }
+    onChange(nextProduct);
+  };
+
+  const updateVariant = (index, field, value) => {
+    updateVariants(variants.map((variant, variantIndex) =>
+      variantIndex === index ? { ...variant, [field]: value } : variant
+    ));
+  };
+
   const formatCurrency = (amount) => {
     return `₦${parseFloat(amount || 0).toLocaleString()}`;
   };
@@ -201,9 +219,10 @@ const ProductForm = ({
                     onChange={(e) => onChange({ ...product, price: e.target.value })}
                     placeholder="0.00"
                     className={`pf-price-input ${errors.price ? 'pf-input-error' : ''}`}
-                    disabled={loading}
+                    disabled={loading || variants.length > 0}
                   />
                 </div>
+                {variants.length > 0 && <small>Starting price is calculated from the lowest variant price.</small>}
                 {errors.price && <span className="pf-error-text">{errors.price[0]}</span>}
               </div>
 
@@ -242,9 +261,10 @@ const ProductForm = ({
                     onChange={(e) => onChange({ ...product, stock_quantity: e.target.value })}
                     placeholder="0"
                     className={errors.stock_quantity ? 'pf-input-error' : ''}
-                    disabled={loading}
+                    disabled={loading || variants.length > 0}
                   />
                   {errors.stock_quantity && <span className="pf-error-text">{errors.stock_quantity[0]}</span>}
+                  {variants.length > 0 && <small>Total stock is calculated from variant stock.</small>}
                 </div>
 
                 <div className="pf-form-group">
@@ -315,6 +335,7 @@ const ProductForm = ({
 
               <div className="pf-image-upload-section">
                 <label>Additional Images</label>
+                <p className="pf-image-upload-hint">Each additional image must be 2 MB or smaller.</p>
                 <div className="pf-image-upload pf-image-upload-small">
                   {imagesPreviews.length > 0 ? (
                     <div className="pf-additional-images">
@@ -348,7 +369,7 @@ const ProductForm = ({
                       </label>
                     </div>
                   ) : (
-                    <div className="pf-image-placeholder pf-image-placeholder-small">
+                    <label className="pf-upload-trigger pf-image-placeholder-small">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -362,7 +383,7 @@ const ProductForm = ({
                         onChange={onImagesChange}
                         className="pf-hidden-input"
                       />
-                    </div>
+                    </label>
                   )}
                 </div>
               </div>
@@ -407,63 +428,60 @@ const ProductForm = ({
                   />
                 </div>
               </div>
-                <div className="pf-form-row">
-                <div className="pf-form-group">
-                  <label>Color</label>
-                  <div className="pf-colors-container">
-                    {color ? (
-                      <div className="pf-color-chip" title={`#${color.slice(1).toUpperCase()}`}>
-                        <div 
-                          className="pf-color-swatch" 
-                          style={{ backgroundColor: color }}
-                          onClick={() => navigator.clipboard.writeText(color)}
-                        />
-                        <button
-                          type="button"
-                          className="pf-color-remove"
-                          onClick={() => onColorChange('')}
-                          disabled={loading}
-                          title="Clear color"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="pf-placeholder-colors">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"/>
-                        </svg>
-                        <span>No color selected</span>
-                      </div>
-                    )}
-                    <label className="pf-color-picker">
-                      <input
-                        type="color"
-                        value={color || "#ff5733"}
-                        onChange={(e) => onColorChange(e.target.value)}
-                        disabled={loading}
-                        className="pf-color-input"
-                        title="Pick product color"
-                      />
-                      <span className="pf-picker-label">{color ? 'Change Color' : 'Pick Color'}</span>
-                    </label>
+              <div className="pf-form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ marginBottom: '4px' }}>Purchasable options</label>
+                    <small>Each combination has its own price and stock. Use color names such as “Sky blue”, not color codes.</small>
                   </div>
-                  {errors.colors && <span className="pf-error-text">{errors.colors}</span>}
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary"
+                    onClick={() => updateVariants([...variants, { sku: '', color: '', size: '', dimensions: '', price: product.price || '', stock_quantity: 0 }])}
+                    disabled={loading}
+                  >
+                    Add option
+                  </button>
                 </div>
 
-                <div className="pf-form-group">
-                  <label>Size</label>
-                  <input
-                    type="text"
-                    value={product.size}
-                    onChange={(e) => onChange({ ...product, size: e.target.value })}
-                    placeholder="Size"
-                    disabled={loading}
-                  />
-                </div>
+                {variants.length === 0 ? (
+                  <p className="small text-muted">No options configured. Add a color, size, or dimension only when this product has purchasable variations.</p>
+                ) : variants.map((variant, index) => (
+                  <div key={variant.id || index} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', alignItems: 'end', border: '1px solid #e2e2e2', borderRadius: '6px', padding: '12px', marginBottom: '10px' }}>
+                    {[
+                      ['color', 'Color name', 'e.g. Sky blue'],
+                      ['size', 'Size', 'e.g. A4'],
+                      ['dimensions', 'Dimensions', 'e.g. 30 x 40 cm'],
+                      ['sku', 'Option SKU', 'Optional'],
+                      ['price', 'Price', '0.00'],
+                      ['stock_quantity', 'Stock', '0']
+                    ].map(([field, label, placeholder]) => (
+                      <label className="pf-form-group" key={field}>
+                        <span>{label}</span>
+                        <input
+                          type={field === 'price' || field === 'stock_quantity' ? 'number' : 'text'}
+                          min={field === 'price' || field === 'stock_quantity' ? '0' : undefined}
+                          step={field === 'price' ? '0.01' : '1'}
+                          value={variant[field] ?? ''}
+                          onChange={(event) => updateVariant(index, field, event.target.value)}
+                          placeholder={placeholder}
+                          disabled={loading}
+                        />
+                        {errors[`variants.${index}.${field}`] && <span className="pf-error-text">{errors[`variants.${index}.${field}`][0]}</span>}
+                      </label>
+                    ))}
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={() => updateVariants(variants.filter((_, variantIndex) => variantIndex !== index))}
+                      disabled={loading}
+                      aria-label={`Remove option ${index + 1}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {errors.variants && <span className="pf-error-text">{errors.variants[0]}</span>}
               </div>
 
               <div className="pf-form-row">
@@ -480,12 +498,12 @@ const ProductForm = ({
                 </div>
 
                 <div className="pf-form-group">
-                  <label>Dimensions</label>
+                  <label>Shipping dimensions</label>
                   <input
                     type="text"
                     value={product.dimensions}
                     onChange={(e) => onChange({ ...product, dimensions: e.target.value })}
-                    placeholder="L x W x H"
+                    placeholder="Package L x W x H"
                     disabled={loading}
                   />
                 </div>
