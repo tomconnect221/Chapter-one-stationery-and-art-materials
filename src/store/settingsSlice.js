@@ -16,6 +16,9 @@ export const fetchSettings = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message || 'An unknown error occurred');
     }
+  },
+  {
+    condition: (_, { getState }) => getState().settings.status !== 'loading',
   }
 );
 
@@ -31,6 +34,7 @@ const settingsSlice = createSlice({
     builder
       .addCase(fetchSettings.pending, (state) => {
         state.status = 'loading';
+        state.error = null;
       })
       .addCase(fetchSettings.fulfilled, (state, action) => {
         state.status = 'succeeded';

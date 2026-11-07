@@ -37,7 +37,7 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container bg-light mt-5" style={{background:'white'}}>
+    <div className="auth-container bg-light" style={{background:'white'}}>
       <div className="auth-wrapper">
         <div className="auth-card">
           {/* Logo */}

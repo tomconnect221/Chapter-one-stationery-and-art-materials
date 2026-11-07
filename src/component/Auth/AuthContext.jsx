@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -188,6 +188,7 @@ export const AuthProvider = ({ children }) => {
       const formData = new URLSearchParams();
       formData.append('token', data.token);
       formData.append('email', data.email);
+      formData.append('role', data.role);
       formData.append('password', data.password);
       formData.append('password_confirmation', data.password_confirmation);
 
@@ -319,13 +320,13 @@ export const AuthProvider = ({ children }) => {
     dispatch(logout());
   };
 
-  const clearAuthError = () => {
+  const clearAuthError = useCallback(() => {
     dispatch(clearError());
-  };
+  }, [dispatch]);
 
-  const clearAuthSuccess = () => {
+  const clearAuthSuccess = useCallback(() => {
     dispatch(clearSuccess());
-  };
+  }, [dispatch]);
 
   return (
     <AuthContext.Provider value={{

@@ -8,7 +8,7 @@ import './style.css';
 import './additional.css';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { FaShippingFast, FaShieldAlt, FaBox, FaStore, FaTags, FaStar, FaFacebookF, FaTwitter, FaWhatsapp, FaLink, FaHeart, FaRegHeart, FaQrcode } from 'react-icons/fa';
+import { FaShippingFast, FaShieldAlt, FaBox, FaStore, FaTags, FaStar, FaFacebookF, FaTwitter, FaWhatsapp, FaInstagram, FaLink, FaHeart, FaRegHeart, FaQrcode } from 'react-icons/fa';
 import { useWishlist } from '../../../hooks/useWishlist';
 import { BiSolidOffer } from 'react-icons/bi';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -182,6 +182,72 @@ export default function ProductDetail() {
     );
   }
 
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+  const frontendBaseUrl = (import.meta.env.VITE_FRONTEND_URL || window.location.origin).replace(/\/+$/, '');
+  const frontendProductUrl = `${frontendBaseUrl}/product/${encodeURIComponent(product.id)}`;
+  const productShareUrl = `${apiBaseUrl}/share/products/${encodeURIComponent(product.id)}`;
+  const productImageUrl = product.image
+    ? (/^https?:\/\//i.test(product.image)
+      ? product.image
+      : `${apiBaseUrl}${product.image.startsWith('/') ? '' : '/'}${product.image}`)
+    : '';
+  const shareDescription = String(
+    product.meta_description || product.short_description || product.description || ''
+  ).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+  const instagramCaption = [product.name, shareDescription, frontendProductUrl]
+    .filter(Boolean)
+    .join('\n\n');
+
+  const handleInstagramShare = async () => {
+    try {
+      const imageResponse = await fetch(productImageUrl);
+      if (!imageResponse.ok) throw new Error('Unable to load product image.');
+
+      const imageBlob = await imageResponse.blob();
+      const imageType = imageBlob.type || 'image/jpeg';
+      const extension = imageType.split('/')[1]?.split('+')[0] || 'jpg';
+      const imageFile = new File([imageBlob], `chapter-one-product-${product.id}.${extension}`, { type: imageType });
+
+      if (navigator.share && navigator.canShare?.({ files: [imageFile] })) {
+        await navigator.share({
+          files: [imageFile],
+          title: product.name,
+          text: instagramCaption,
+        });
+        return;
+      }
+
+      const imageDownloadUrl = URL.createObjectURL(imageBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = imageDownloadUrl;
+      downloadLink.download = imageFile.name;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(imageDownloadUrl), 1000);
+      await navigator.clipboard.writeText(instagramCaption);
+      toast.info('Product image downloaded and caption copied. Attach the image in Instagram.');
+    } catch (shareError) {
+      if (shareError.name === 'AbortError') return;
+
+      try {
+        await navigator.clipboard.writeText(instagramCaption);
+        toast.info('Product caption and link copied. Open Instagram and attach the product image.');
+      } catch {
+        toast.error('Unable to prepare this product for Instagram sharing.');
+      }
+    }
+  };
+
+  const handleCopyProductLink = async () => {
+    try {
+      await navigator.clipboard.writeText(productShareUrl);
+      toast.success('Shareable product link copied!');
+    } catch {
+      toast.error('Unable to copy the product link.');
+    }
+  };
+
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const selectedVariant = variants.find(variant => variant.id === selectedVariantId) || null;
   const availableStock = selectedVariant ? Number(selectedVariant.stock_quantity) : Number(product.stock_quantity);
@@ -290,15 +356,16 @@ export default function ProductDetail() {
         {/* Open Graph tags for social media */}
         <meta property="og:title" content={product.meta_title || product.name} />
         <meta property="og:description" content={product.meta_description || product.short_description || product.description} />
-        <meta property="og:image" content={`${import.meta.env.VITE_API_URL}${product.image}`} />
+        <meta property="og:image" content={productImageUrl} />
         <meta property="og:type" content="product" />
-        <meta property="og:url" content={window.location.href} />
+        <meta property="og:url" content={productShareUrl} />
+        <meta property="og:image:alt" content={product.name} />
 
         {/* Twitter Card tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={product.meta_title || product.name} />
         <meta name="twitter:description" content={product.meta_description || product.short_description || product.description} />
-        <meta name="twitter:image" content={`${import.meta.env.VITE_API_URL}${product.image}`} />
+        <meta name="twitter:image" content={productImageUrl} />
 
         {/* Product-specific meta tags */}
         <meta property="product:price:amount" content={product.price} />
@@ -647,31 +714,35 @@ export default function ProductDetail() {
                     <button
                       className="share-btn facebook"
                       title="Share on Facebook"
-                      onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}
+                      onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productShareUrl)}`, '_blank', 'noopener,noreferrer')}
                     >
                       <FaFacebookF />
                     </button>
                     <button
                       className="share-btn twitter"
                       title="Share on Twitter"
-                      onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(product.name)}`, '_blank')}
+                      onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(productShareUrl)}&text=${encodeURIComponent(`${product.name}${shareDescription ? ` - ${shareDescription}` : ''}`)}`, '_blank', 'noopener,noreferrer')}
                     >
                       <FaTwitter />
                     </button>
                     <button
                       className="share-btn whatsapp"
                       title="Share on WhatsApp"
-                      onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(product.name + ' ' + window.location.href)}`, '_blank')}
+                      onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${product.name}${shareDescription ? `\n${shareDescription}` : ''}\n${productShareUrl}`)}`, '_blank', 'noopener,noreferrer')}
                     >
                       <FaWhatsapp />
                     </button>
                     <button
+                      className="share-btn instagram"
+                      title="Share product image and caption to Instagram"
+                      onClick={handleInstagramShare}
+                    >
+                      <FaInstagram />
+                    </button>
+                    <button
                       className="share-btn copy-link"
                       title="Copy Link"
-                      onClick={() => {
-                        navigator.clipboard.writeText(window.location.href);
-                        toast.success('Link copied to clipboard!');
-                      }}
+                      onClick={handleCopyProductLink}
                     >
                       <FaLink />
                     </button>
@@ -748,7 +819,7 @@ export default function ProductDetail() {
           
           <div className="qr-code-container p-3 bg-light rounded mb-3 d-inline-block">
             <QRCodeCanvas
-              value={window.location.href}
+              value={productShareUrl}
               size={200}
               level={"H"}
               includeMargin={true}
@@ -766,15 +837,12 @@ export default function ProductDetail() {
           </div>
           
           <div className="product-url mb-3">
-            <small className="text-muted text-break">{window.location.href}</small>
+            <small className="text-muted text-break">{productShareUrl}</small>
           </div>
           
           <button
             className="btn btn-primary btn-sm mb-2"
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              toast.success('Link copied to clipboard!');
-            }}
+            onClick={handleCopyProductLink}
           >
             Copy Link
           </button>

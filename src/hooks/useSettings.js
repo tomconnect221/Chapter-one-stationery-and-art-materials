@@ -8,8 +8,8 @@ const useSettings = () => {
   const { data: settings, status, error } = useSelector((state) => state.settings);
 
   useEffect(() => {
-    // Fetch settings only if they haven't been fetched or if the fetch failed
-    if (status === 'idle' || status === 'failed') {
+    // Do not automatically retry a failed request; callers can dispatch fetchSettings explicitly.
+    if (status === 'idle') {
       dispatch(fetchSettings());
     }
   }, [status, dispatch]);

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import axios from 'axios';
-import { loginStart, loginSuccess, loginFailure, clearError } from '../../store/authSlice';
+import { loginStart, loginSuccess, loginFailure } from '../../store/authSlice';
+import apiClient from '../../apiClient';
+import siteLogo from '/assets/image/dark_logo.png';
 import './Auth.css';
 
 const AdminLogin = () => {
@@ -46,15 +47,11 @@ const AdminLogin = () => {
     dispatch(loginStart());
 
     try {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/auth/login`;
-      console.log('Attempting login to:', apiUrl);
-      console.log('Request data:', { email: formData.email, role: formData.userType });
-      const response = await axios.post(apiUrl, {
+      const response = await apiClient.post('/api/auth/login', {
         email: formData.email,
         password: formData.password,
         role: formData.userType
       });
-      console.log('Login response:', response);
 
       if (response.data.success) {
         // Ensure role is set in user data, using the role from login form as fallback
@@ -85,13 +82,6 @@ const AdminLogin = () => {
         setError(response.data.message || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', error.response.data);
-      }
       const errorMessage = error.response?.data?.message || 'Network error. Please check your connection.';
       dispatch(loginFailure(errorMessage));
       setError(errorMessage);
@@ -101,13 +91,14 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-wrapper">
-        <div className="auth-card">
+    <div className="auth-container admin-auth-container">
+      <div className="auth-wrapper admin-auth-wrapper">
+        <div className="auth-card admin-auth-card">
           {/* Logo */}
           <div className="auth-logo">
-            {/* <h1>Zeomart<span className="logo-dot">.</span></h1> */}
-            {/* <p className="auth-subtitle">Admin & Dispatch Portal</p> */}
+            <Link to="/" className="admin-auth-logo-link" aria-label="Go to homepage">
+              <img src={siteLogo} alt="Chapter One Stationery and Art Materials" />
+            </Link>
           </div>
 
 
@@ -146,25 +137,25 @@ const AdminLogin = () => {
               </button>
             </div>
             {error && (
-              <div className="auth-alert error">
+              <div className="auth-alert error p-1 d-flex align-items-center">
                 <span className="alert-icon">⚠️</span>
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="auth-alert success">
+              <div className="auth-alert success p-1 d-flex align-items-center">
                 <span className="alert-icon">✅</span>
                 {success}
               </div>
             )}
 
             {/* Login Info */}
-            <div className="auth-alert info">
+            <div className="auth-alert info admin-login-info">
               <span className="alert-icon">ℹ️</span>
               <div>
                 <strong><span className='text-capitalize'>{formData.userType}</span> Login:</strong>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                <div className="admin-login-info-detail">
                   Use your <span className='text-capitalize'>{formData.userType}</span> credentials to access the dashboard
                 </div>
               </div>

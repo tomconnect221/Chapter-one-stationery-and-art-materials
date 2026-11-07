@@ -38,7 +38,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AboutUs from './pages/customerPage/About_us';
 import FAQ from './pages/customerPage/store_faq';
 import PaymentConfirmation from './pages/customerPage/Checkout/PaymentConfirmation';
-import PopupAd from './component/customer-components/ads/popup';
+import PopupAd from './component/customer-components/campaigns/popup';
 import PromoProducts from './pages/customerPage/PromoProducts/PromoProducts';
 // import PopupAd from './components/PopupAd'; // Import the PopupAd component
 
@@ -132,6 +132,9 @@ export function App() {
           <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/password/reset" element={<ResetPassword />} />
+          <Route path="/password-reset" element={<ResetPassword />} />
+          <Route path="/public/password-reset" element={<ResetPassword />} />
+          <Route path="/public/password/reset" element={<ResetPassword />} />
 
           {/* Account Routes - WITH Navbar but NO PopupAd */}
           <Route path="/account" element={<CustomerAccount />}>

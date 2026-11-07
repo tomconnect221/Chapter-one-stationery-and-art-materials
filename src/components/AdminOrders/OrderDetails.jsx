@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './OrderDetails.css';
+import ProductAttributes from './ProductAttributes';
 
 const OrderDetails = ({ orderId, userType, token, onClose }) => {
   const [orderDetails, setOrderDetails] = useState(null);
@@ -308,20 +309,7 @@ const OrderDetails = ({ orderId, userType, token, onClose }) => {
                   <div className="order-item-details">
                     <h4>{item.product.name}</h4>
                     
-                    <div className="order-item-grid">
-                      <div className="order-item-grid-item">
-                        <label>SKU</label>
-                        <p className="mono">{item.product.sku || 'N/A'}</p>
-                      </div>
-                      <div className="order-item-grid-item">
-                        <label>Category</label>
-                        <p>{item.product.category?.name || 'N/A'}</p>
-                      </div>
-                      <div className="order-item-grid-item">
-                        <label>Brand</label>
-                        <p>{item.product.brand || 'N/A'}</p>
-                      </div>
-                    </div>
+                    <ProductAttributes item={item} />
 
                     <p className="order-item-description">
                       {item.product.short_description || item.product.description || 'No description'}

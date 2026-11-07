@@ -8,7 +8,7 @@ import 'owl.carousel/dist/assets/owl.carousel.css';
 import 'owl.carousel/dist/assets/owl.theme.default.css';
 import HomeSLider from './Homeslider';
 import HomepageCategorySection from './HomepageCategories';
-import AdsTypeBlock from '../../../component/customer-components/ads';
+import AdsTypeBlock from '../../../component/customer-components/campaigns';
 import InContentAds from './InContentAds';
 import HomeBestSeller from './bestSeller';
 import ViewedItemProduct from './viewedItemProduct';

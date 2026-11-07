@@ -16,6 +16,14 @@ const formatNumber = (number) => {
     });
 };
 
+const getProductImageUrl = (image) => {
+    if (!image || typeof image !== 'string') return '';
+    if (/^https?:\/\//i.test(image)) return image;
+
+    const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+    return `${apiBaseUrl}${image.startsWith('/') ? '' : '/'}${image}`;
+};
+
 export default function PaymentConfirmation() {
     const navigate = useNavigate();
     const { token } = useSelector(state => state.auth);
@@ -164,8 +172,8 @@ export default function PaymentConfirmation() {
                             <div className="status-icon success">
                                 <div className="icon-wrapper">
                                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                                        <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#81d4f5" fillOpacity="0.1" stroke="#81d4f5" strokeWidth="2"/>
-                                        <path d="M16 24L22 30L32 20" stroke="#81d4f5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#2f8652" fillOpacity="0.1" stroke="#2f8652" strokeWidth="2"/>
+                                        <path d="M16 24L22 30L32 20" stroke="#2f8652" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                 </div>
                             </div>
@@ -195,13 +203,31 @@ export default function PaymentConfirmation() {
                             </div>
 
                             <div className="order-items-summary">
-                                <h4>Order Items</h4>
+                                <div className="order-items-heading">
+                                    <h4>Order Items</h4>
+                                    <span>{orderData.order_items?.length || 0} {orderData.order_items?.length === 1 ? 'item' : 'items'}</span>
+                                </div>
                                 <div className="items-list">
-                                    {orderData.order_items.map(item => (
-                                        <div key={item.id} className="order-item">
+                                    {(Array.isArray(orderData.order_items) ? orderData.order_items : []).map((item, index) => (
+                                        <div key={item.id || `${item.product_id || 'item'}-${index}`} className="order-item">
+                                            <div className="item-image">
+                                                <svg className="item-image-placeholder" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M4 5.75A1.75 1.75 0 0 1 5.75 4h12.5A1.75 1.75 0 0 1 20 5.75v12.5A1.75 1.75 0 0 1 18.25 20H5.75A1.75 1.75 0 0 1 4 18.25V5.75Zm2 .25v12h12V6H6Zm1.25 10.5 2.7-3.2a.75.75 0 0 1 1.15-.02l1.6 1.8 1.2-1.35a.75.75 0 0 1 1.13.02l2.1 2.75H7.25ZM9 11a1.25 1.25 0 1 0 0-2.5A1.25 1.25 0 0 0 9 11Z" />
+                                                </svg>
+                                                {getProductImageUrl(item.product?.image) && (
+                                                    <img
+                                                        src={getProductImageUrl(item.product.image)}
+                                                        alt={item.product?.name || 'Ordered product'}
+                                                        loading="lazy"
+                                                        onError={(event) => {
+                                                            event.currentTarget.style.display = 'none';
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
                                             <div className="item-info">
-                                                <span className="item-name">{item.product.name}</span>
-                                                {item.variant_options && (
+                                                <span className="item-name">{item.product?.name || 'Product unavailable'}</span>
+                                                {item.variant_options && typeof item.variant_options === 'object' && (
                                                     <span className="item-meta">
                                                         {Object.entries(item.variant_options).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(' · ')}
                                                     </span>
@@ -229,35 +255,36 @@ export default function PaymentConfirmation() {
                             <div className="status-icon error">
                                 <div className="icon-wrapper">
                                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                                        <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#FF6B6B" fillOpacity="0.1" stroke="#FF6B6B" strokeWidth="2"/>
-                                        <path d="M18 18L30 30M30 18L18 30" stroke="#FF6B6B" strokeWidth="3" strokeLinecap="round"/>
+                                        <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#c54343" fillOpacity="0.08" stroke="#c54343" strokeWidth="2"/>
+                                        <path d="M18 18L30 30M30 18L18 30" stroke="#c54343" strokeWidth="3" strokeLinecap="round"/>
                                     </svg>
                                 </div>
                             </div>
                             
                             <div className="failed-header">
-                                <h2>Payment Failed</h2>
+                                <span className="failed-eyebrow">PAYMENT STATUS</span>
+                                <h2>Payment not confirmed</h2>
                                 <div className="current-step-indicator">
-                                    Current Step: <span className="step-badge">Payment</span>
+                                    We couldn’t verify this payment yet.
                                 </div>
                             </div>
 
                             <div className="error-section">
                                 <div className="error-details">
-                                    <p className="failed-message">
-                                        We couldn't verify your payment. This could be due to:
-                                    </p>
-                                    <ul className="error-reasons">
-                                        <li>Insufficient funds in your account</li>
-                                        <li>Network connectivity issues</li>
-                                        <li>Payment gateway timeout</li>
-                                        <li>Card authorization failure</li>
-                                    </ul>
+                                    <span className="error-card-icon" aria-hidden="true">!</span>
+                                    <div>
+                                        <h3 className="failed-message">Your order has not been confirmed</h3>
+                                        <p className="error-copy">If your bank or payment provider shows a debit, please contact support before trying again. Some payments take a short time to update.</p>
+                                    </div>
                                 </div>
 
                                 <div className="recommendation">
-                                    <h4>What to do next?</h4>
-                                    <p>You can try the payment again with the same or a different payment method.</p>
+                                    <h4>Next steps</h4>
+                                    <ol className="next-steps">
+                                        <li>Check your bank or payment-provider transaction status.</li>
+                                        <li>If no payment was taken, retry checkout or return to your cart.</li>
+                                        <li>If you were charged, contact support so we can help verify it.</li>
+                                    </ol>
                                 </div>
                             </div>
 

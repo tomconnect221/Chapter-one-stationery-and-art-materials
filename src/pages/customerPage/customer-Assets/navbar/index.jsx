@@ -414,6 +414,19 @@ const Navbar = ({ onOpenAuth }) => {
                                         </div>
                                     </div>
 
+                                    {isAuthenticated && (
+                                        <div className="action-item wishlist-nav-item">
+                                            <Link
+                                                to="/wishlist"
+                                                className="action-link wishlist-nav-link"
+                                                aria-label="View wishlist"
+                                            >
+                                                <i className="far fa-heart" aria-hidden="true"></i>
+                                                <span className="wishlist-nav-label">Wishlist</span>
+                                            </Link>
+                                        </div>
+                                    )}
+
                                     {/* Cart */}
                                     <div className="action-item cart-item text-light" >
                                         <Link to="/cart" className="action-link cart-link" style={{ background: 'none' }}>

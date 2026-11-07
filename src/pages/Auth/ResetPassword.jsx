@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../component/Auth/AuthContext';
+import siteLogo from '/assets/image/dark_logo.png';
 import './Auth.css';
 
 const ResetPassword = () => {
@@ -14,24 +15,23 @@ const ResetPassword = () => {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [token, setToken] = useState('');
-    const [email, setEmail] = useState('');
+    const [validationError, setValidationError] = useState('');
+    const token = searchParams.get('token') || '';
+    const email = searchParams.get('email') || '';
+    const role = searchParams.get('role') || '';
+    const isStaffReset = ['admin', 'subadmin', 'rider'].includes(role);
+    const loginPath = isStaffReset ? '/admin/login' : '/login';
+    const roleLabel = role === 'subadmin' ? 'Sub Admin' : role === 'rider' ? 'Rider' : 'Admin';
 
     useEffect(() => {
-        const tokenParam = searchParams.get('token');
-        const emailParam = searchParams.get('email');
-        
-        if (tokenParam) setToken(tokenParam);
-        if (emailParam) setEmail(emailParam);
-
-        // Clear any previous errors/success messages
         clearError();
         clearSuccess();
-    }, [searchParams, clearError, clearSuccess]);
+    }, [clearError, clearSuccess]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setValidationError('');
         clearError();
     };
 
@@ -39,48 +39,62 @@ const ResetPassword = () => {
         e.preventDefault();
         clearError();
         clearSuccess();
+        setValidationError('');
 
-        if (!formData.password || !formData.password_confirmation) {
-            // Maybe set a local error/toast if fields are empty, but required attr handles basics
+        if (formData.password.length < 8) {
+            setValidationError('Your password must be at least 8 characters long.');
             return;
         }
 
         if (formData.password !== formData.password_confirmation) {
-            // You could dispatch an error or show a toast here
-            // For now, depending on validation from backend, or we can check here.
-            // Let's rely on backend or add simple check.
-            // It's better to show error immediately if passwords don't match.
+            setValidationError('The passwords do not match.');
+            return;
         }
 
         const result = await resetPassword({
             token,
             email,
+            role,
             password: formData.password,
             password_confirmation: formData.password_confirmation
         });
 
         if (result.success) {
             setTimeout(() => {
-                navigate('/login');
+                navigate(loginPath);
             }, 3000);
         }
     };
 
     return (
-        <div className="auth-container bg-light" style={{ background: 'white' }}>
-            <div className="auth-wrapper">
-                <div className="auth-card">
+        <div className={`auth-container ${isStaffReset ? 'admin-auth-container' : 'bg-light'}`}>
+            <div className={`auth-wrapper ${isStaffReset ? 'admin-auth-wrapper' : ''}`}>
+                <div className={`auth-card ${isStaffReset ? 'admin-auth-card' : ''}`}>
+                    {isStaffReset && (
+                        <div className="auth-logo">
+                            <Link to="/" className="admin-auth-logo-link" aria-label="Go to homepage">
+                                <img src={siteLogo} alt="Chapter One Stationery and Art Materials" />
+                            </Link>
+                        </div>
+                    )}
                     {/* Reset Password Form */}
                     <form onSubmit={handleSubmit} className="auth-form">
-                        <h2 className="auth-title">Reset Password</h2>
+                        <h2 className="auth-title">Reset {isStaffReset ? `${roleLabel} ` : ''}Password</h2>
                         <p className="auth-description">
                             Create a new password for your account
                         </p>
 
                         {error && (
-                            <div className="auth-alert error p-1 d-flex justify-content-start align-items-center">
+                            <div className="auth-alert error p-1 d-flex justify-content-start align-items-center" role="alert">
                                 <span className="alert-icon">⚠️</span>
                                 {error}
+                            </div>
+                        )}
+
+                        {validationError && (
+                            <div className="auth-alert error p-1 d-flex justify-content-start align-items-center" role="alert">
+                                <span className="alert-icon">⚠️</span>
+                                {validationError}
                             </div>
                         )}
 
@@ -91,7 +105,7 @@ const ResetPassword = () => {
                             </div>
                         )}
 
-                        {!token || !email ? (
+                        {!token || !email || !role ? (
                             <div className="auth-alert error p-1 d-flex justify-content-start align-items-center">
                                 <span className="alert-icon">⚠️</span>
                                 Invalid or missing reset token. Please check the link from your email.
@@ -111,6 +125,8 @@ const ResetPassword = () => {
                                             onChange={handleChange}
                                             placeholder="Enter new password"
                                             required
+                                            minLength={8}
+                                            autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
@@ -135,6 +151,8 @@ const ResetPassword = () => {
                                             onChange={handleChange}
                                             placeholder="Confirm new password"
                                             required
+                                            minLength={8}
+                                            autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
@@ -168,7 +186,7 @@ const ResetPassword = () => {
                     {/* Footer */}
                     <div className="auth-footer">
                         <p className="back-link">
-                            <Link to="/login">← Back to Login</Link>
+                            <Link to={loginPath}>← Back to {isStaffReset ? 'Staff' : 'Customer'} Login</Link>
                         </p>
                     </div>
                 </div>
