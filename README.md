@@ -1,2 +1,3 @@
-# React-Zagasm
-Front end Code Base Using React
+# Chapter-one-stationery-and-art-materials
+
+An e-commerce project built with React.
